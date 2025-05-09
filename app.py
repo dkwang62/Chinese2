@@ -124,7 +124,7 @@ def render_controls():
     col1, col2, col3 = st.columns(3)
     with col1:
         st.selectbox("Select a component:", sorted_components,
-                     format_func=lambda c: f"{c} ({clean_field(component_map[c]['meta'].get('pinyin'))}, {get_stroke_count(c)} strokes, {clean_field(component_map[c]['meta'].get('definition'))})",
+                     format_func=lambda c: f"{c} ({clean_field(component_map[c]['meta'].get('pinyin'))}, {get_stroke_count(c)} strokes)",
                      index=sorted_components.index(st.session_state.selected_comp),
                      key="selected_comp", on_change=lambda: update_selected_comp(st.session_state.selected_comp))
     with col2:
