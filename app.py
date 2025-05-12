@@ -105,12 +105,12 @@ def get_stroke_count(char):
 # Session state initialization
 def init_session_state():
     config_options = [
-        {"selected_comp": "爫", "stroke_count": 4, "selected_idc": "No Filter", "display_mode": "Single Character"},
-        {"selected_comp": "心", "stroke_count": 4, "selected_idc": "No Filter", "display_mode": "2-Character Phrases"},
-        {"selected_comp": "⺌", "stroke_count": 3, "selected_idc": "No Filter", "display_mode": "3-Character Phrases"},
-        {"selected_comp": "㐱", "stroke_count": 5, "selected_idc": "No Filter", "display_mode": "Single Character"},
-        {"selected_comp": "覀", "stroke_count": 6, "selected_idc": "No Filter", "display_mode": "2-Character Phrases"},
-        {"selected_comp": "豕", "stroke_count": 7, "selected_idc": "No Filter", "display_mode": "3-Character Phrases"}
+        {"selected_comp": "爫", "stroke_count": 4, "selected_idc": "No Filter", "component_idc": "No Filter", "display_mode": "Single Character"},
+        {"selected_comp": "心", "stroke_count": 4, "selected_idc": "No Filter", "component_idc": "No Filter", "display_mode": "2-Character Phrases"},
+        {"selected_comp": "⺌", "stroke_count": 3, "selected_idc": "No Filter", "component_idc": "No Filter", "display_mode": "3-Character Phrases"},
+        {"selected_comp": "㐱", "stroke_count": 5, "selected_idc": "No Filter", "component_idc": "No Filter", "display_mode": "Single Character"},
+        {"selected_comp": "覀", "stroke_count": 6, "selected_idc": "No Filter", "component_idc": "No Filter", "display_mode": "2-Character Phrases"},
+        {"selected_comp": "豕", "stroke_count": 7, "selected_idc": "No Filter", "component_idc": "No Filter", "display_mode": "3-Character Phrases"}
     ]
     selected_config = random.choice(config_options)
     defaults = {
@@ -118,6 +118,7 @@ def init_session_state():
         "stroke_count": selected_config["stroke_count"],
         "display_mode": selected_config["display_mode"],
         "selected_idc": selected_config["selected_idc"],
+        "component_idc": selected_config["component_idc"],
         "text_input_comp": selected_config["selected_comp"],
         "page": 1,
         "results_per_page": 50,
@@ -163,15 +164,14 @@ def on_output_char_select(component_map):
 def on_reset_filters():
     st.session_state.stroke_count = 0
     st.session_state.selected_idc = "No Filter"
-    st.session_state.display_mode = "Single Character"
-    st.session_state.text_input_comp = st.session_state.selected_comp
+    st.session_state.component_idc = "No Filter"
     st.session_state.page = 1
 
 def is_reset_needed():
     return (
         st.session_state.stroke_count != 0 or
         st.session_state.selected_idc != "No Filter" or
-        st.session_state.display_mode != "Single Character"
+        st.session_state.component_idc != "No Filter"
     )
 
 # Render controls
@@ -195,7 +195,7 @@ def render_controls(component_map):
     with st.container():
         st.markdown("### Select Input Component")
         st.caption("Choose or type a single character to explore its related characters.")
-        col1, col2, col3, col4 = st.columns([1.5, 0.2, 0.4, 0.9])
+        col1, col2, col3, col4, col5 = st.columns([1.5, 0.2, 0.4, 0.9, 0.9])
 
         with col1:
             stroke_counts = sorted(set(
@@ -207,7 +207,8 @@ def render_controls(component_map):
             filtered_components = [
                 comp for comp in component_map
                 if isinstance(comp, str) and len(comp) == 1 and
-                (st.session_state.stroke_count == 0 or get_stroke_count(comp) == st.session_state.stroke_count)
+                (st.session_state.stroke_count == 0 or get_stroke_count(comp) == st.session_state.stroke_count) and
+                (st.session_state.component_idc == "No Filter" or component_map.get(comp, {}).get("meta", {}).get("IDC", "") == st.session_state.component_idc)
             ]
             sorted_components = sorted(filtered_components, key=lambda c: get_stroke_count(c) or 0)
 
@@ -220,7 +221,7 @@ def render_controls(component_map):
             else:
                 st.session_state.selected_comp = ""
                 st.session_state.text_input_comp = ""
-                st.warning("No valid components available. Please adjust the stroke count filter or check the JSON data.")
+                st.warning("No valid components available. Please adjust the stroke count or IDC filter or check the JSON data.")
 
             if sorted_components:
                 st.selectbox(
@@ -258,6 +259,21 @@ def render_controls(component_map):
                 )
 
         with col4:
+            component_idcs = {"No Filter"} | {
+                component_map.get(c, {}).get("meta", {}).get("IDC", "")
+                for c in component_map
+                if isinstance(c, str) and len(c) == 1 and component_map.get(c, {}).get("meta", {}).get("IDC", "")
+            }
+            component_idc_options = ["No Filter"] + sorted(component_idcs - {"No Filter"})
+            st.selectbox(
+                "Filter Components by IDC:",
+                options=component_idc_options,
+                format_func=lambda x: f"{x} ({idc_descriptions.get(x, x)})" if x != "No Filter" else x,
+                index=component_idc_options.index(st.session_state.component_idc) if st.session_state.component_idc in component_idc_options else 0,
+                key="component_idc"
+            )
+
+        with col5:
             idcs = {"No Filter"} | {
                 component_map.get(c, {}).get("meta", {}).get("IDC", "")
                 for c in component_map.get(st.session_state.selected_comp, {}).get("related_characters", [])
@@ -265,7 +281,7 @@ def render_controls(component_map):
             }
             idc_options = ["No Filter"] + sorted(idcs - {"No Filter"})
             st.selectbox(
-                "Filter by IDC:",
+                "Filter Output by IDC:",
                 options=idc_options,
                 format_func=lambda x: f"{x} ({idc_descriptions.get(x, x)})" if x != "No Filter" else x,
                 index=idc_options.index(st.session_state.selected_idc) if st.session_state.selected_idc in idc_options else 0,
