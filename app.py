@@ -91,14 +91,13 @@ component_map = load_component_map()
 def clean_field(field):
     return field[0] if isinstance(field, list) and field else field or "—"
 
-def get_stroke_count(char):
+def get_stroke_count(char, invalid_strokes_log=None):
     strokes = component_map.get(char, {}).get("meta", {}).get("strokes", None)
     if isinstance(strokes, (int, float)) and strokes > 0:
         return int(strokes)
-    # Debug invalid strokes
     if strokes is not None and strokes != '':
-        with st.expander("Debug: Invalid Strokes Values"):
-            st.warning(f"Invalid strokes for char '{char}': value={strokes}, type={type(strokes)}")
+        if invalid_strokes_log is not None:
+            invalid_strokes_log.append(f"Char '{char}': strokes={strokes}, type={type(strokes)}")
     return None
 
 # Session state initialization
@@ -191,19 +190,30 @@ def render_controls(component_map):
         "⿻": "Overlaid"
     }
 
+    # Collect invalid strokes for debugging
+    invalid_strokes_log = []
+    stroke_counts = sorted(set(
+        sc for sc in (
+            get_stroke_count(comp, invalid_strokes_log) for comp in component_map
+            if isinstance(comp, str) and len(comp) == 1
+        ) if sc is not None and isinstance(sc, int)
+    ))
+
+    # Display debug info if invalid strokes found
+    if invalid_strokes_log:
+        with st.expander("Debug: Invalid Strokes Values (Click to Expand)", expanded=True):
+            st.warning("Found invalid strokes values in the JSON data:")
+            for log in invalid_strokes_log[:50]:  # Limit to 50 to avoid overwhelming UI
+                st.text(log)
+            if len(invalid_strokes_log) > 50:
+                st.text(f"... and {len(invalid_strokes_log) - 50} more invalid entries.")
+
     with st.container():
         st.markdown("### Select Input Component")
         st.caption("Choose or type a single character to explore its related characters.")
         col1, col2, col3, col4 = st.columns([1.5, 0.2, 0.4, 0.9])
 
         with col1:
-            # Validate keys and stroke counts
-            stroke_counts = sorted(set(
-                sc for sc in (
-                    get_stroke_count(comp) for comp in component_map
-                    if isinstance(comp, str) and len(comp) == 1
-                ) if sc is not None and isinstance(sc, int)
-            ))
             filtered_components = [
                 comp for comp in component_map
                 if isinstance(comp, str) and len(comp) == 1 and
