@@ -352,15 +352,14 @@ def main():
                 copyText.select();
                 document.execCommand("copy");
                 </script>
-                <!-- Modern Clipboard API (commented out due to Streamlit Cloud sandbox limitations):
+                <!-- Modern Clipboard API (commented out due to Streamlit Cloud sandbox limitations) -->
                 <script>
-                navigator.clipboard.writeText(`{export_text}`).then(() => {
+                navigator.clipboard.writeText("{export_text}").then(() => {{
                     console.log('Text copied to clipboard');
-                }).catch(err => {
+                }}).catch(err => {{
                     console.error('Failed to copy text: ', err);
-                });
+                }});
                 </script>
-                -->
             """, height=0)
 
 if __name__ == "__main__":
