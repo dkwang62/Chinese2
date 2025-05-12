@@ -10,7 +10,7 @@ st.set_page_config(layout="wide")
 # Global IDC characters
 IDC_CHARS = {'⿰', '⿱', '⿲', '⿳', '⿴', '⿵', '⿶', '⿷', '⿸', '⿹', '⿺', '⿻'}
 
-# Custom CSS (identical to App1.py)
+# Custom CSS (identical to previous version)
 st.markdown("""
 <style>
     .selected-card {
@@ -95,6 +95,9 @@ def get_stroke_count(char):
     strokes = component_map.get(char, {}).get("meta", {}).get("strokes", None)
     if isinstance(strokes, (int, float)) and strokes > 0:
         return int(strokes)
+    # Debug invalid strokes (uncomment for troubleshooting)
+    # if strokes is not None:
+    #     st.warning(f"Invalid strokes value for char {char}: {strokes} (type: {type(strokes)})")
     return None
 
 # Session state initialization
@@ -193,9 +196,12 @@ def render_controls(component_map):
         col1, col2, col3, col4 = st.columns([1.5, 0.2, 0.4, 0.9])
 
         with col1:
+            # Validate keys and stroke counts
             stroke_counts = sorted(set(
-                sc for sc in (get_stroke_count(comp) for comp in component_map)
-                if sc is not None
+                sc for sc in (
+                    get_stroke_count(comp) for comp in component_map
+                    if isinstance(comp, str) and len(comp) == 1
+                ) if sc is not None and isinstance(sc, int)
             ))
             filtered_components = [
                 comp for comp in component_map
@@ -207,7 +213,6 @@ def render_controls(component_map):
             # invalid_keys = [k for k in component_map if not (isinstance(k, str) and len(k) == 1)]
             # if invalid_keys:
             #     st.warning(f"Invalid component_map keys found: {invalid_keys}")
-            # Validate selected_comp and set selectbox index
             selectbox_index = 0
             if sorted_components:
                 if st.session_state.selected_comp not in sorted_components:
@@ -219,7 +224,7 @@ def render_controls(component_map):
                 st.session_state.text_input_comp = ""
                 st.warning("No valid components available. Please adjust the stroke count filter or check the JSON data.")
 
-            if sorted_components:  # Only render selectbox if there are valid options
+            if sorted_components:
                 st.selectbox(
                     "Select a component:",
                     options=sorted_components,
@@ -252,7 +257,7 @@ def render_controls(component_map):
             idcs = {"No Filter"} | {
                 component_map.get(c, {}).get("meta", {}).get("IDC", "")
                 for c in component_map.get(st.session_state.selected_comp, {}).get("related_characters", [])
-                if component_map.get(c, {}).get("meta", {}).get("IDC", "")
+                if isinstance(c, str) and len(c) == 1 and component_map.get(c, {}).get("meta", {}).get("IDC", "")
             }
             idc_options = ["No Filter"] + sorted(idcs - {"No Filter"})
             st.selectbox(
