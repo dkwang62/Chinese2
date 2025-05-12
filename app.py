@@ -104,20 +104,22 @@ def get_stroke_count(char):
 # Session state initialization
 def init_session_state():
     config_options = [
-        {"selected_comp": "爫", "stroke_count": 4, "selected_idc": "No Filter", "component_idc": "No Filter", "display_mode": "Single Character"},
-        {"selected_comp": "心", "stroke_count": 4, "selected_idc": "No Filter", "component_idc": "⿱", "display_mode": "2-Character Phrases"},
-        {"selected_comp": "⺌", "stroke_count": 3, "selected_idc": "No Filter", "component_idc": "No Filter", "display_mode": "3-Character Phrases"},
-        {"selected_comp": "㐱", "stroke_count": 5, "selected_idc": "No Filter", "component_idc": "No Filter", "display_mode": "Single Character"},
-        {"selected_comp": "覀", "stroke_count": 6, "selected_idc": "No Filter", "component_idc": "No Filter", "display_mode": "2-Character Phrases"},
-        {"selected_comp": "豕", "stroke_count": 7, "selected_idc": "No Filter", "component_idc": "⿰", "display_mode": "3-Character Phrases"}
+        {"selected_comp": "爫", "stroke_count": 4, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "No Filter", "output_radical": "No Filter", "display_mode": "Single Character"},
+        {"selected_comp": "心", "stroke_count": 4, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "⿱", "output_radical": "No Filter", "display_mode": "2-Character Phrases"},
+        {"selected_comp": "⺌", "stroke_count": 3, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "No Filter", "output_radical": "No Filter", "display_mode": "3-Character Phrases"},
+        {"selected_comp": "㐱", "stroke_count": 5, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "No Filter", "output_radical": "No Filter", "display_mode": "Single Character"},
+        {"selected_comp": "覀", "stroke_count": 6, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "No Filter", "output_radical": "No Filter", "display_mode": "2-Character Phrases"},
+        {"selected_comp": "豕", "stroke_count": 7, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "⿰", "output_radical": "No Filter", "display_mode": "3-Character Phrases"}
     ]
     selected_config = random.choice(config_options)
     defaults = {
         "selected_comp": selected_config["selected_comp"],
         "stroke_count": selected_config["stroke_count"],
+        "radical": selected_config["radical"],
         "display_mode": selected_config["display_mode"],
         "selected_idc": selected_config["selected_idc"],
         "component_idc": selected_config["component_idc"],
+        "output_radical": selected_config["output_radical"],
         "idc_refresh": False,
         "text_input_comp": selected_config["selected_comp"],
         "page": 1,
@@ -164,16 +166,20 @@ def on_output_char_select(component_map):
 
 def on_reset_filters():
     st.session_state.stroke_count = 0
-    st.session_state.selected_idc = "No Filter"
+    st.session_state.radical = "No Filter"
     st.session_state.component_idc = "No Filter"
+    st.session_state.selected_idc = "No Filter"
+    st.session_state.output_radical = "No Filter"
     st.session_state.page = 1
     st.session_state.idc_refresh = not st.session_state.idc_refresh
 
 def is_reset_needed():
     return (
         st.session_state.stroke_count != 0 or
+        st.session_state.radical != "No Filter" or
+        st.session_state.component_idc != "No Filter" or
         st.session_state.selected_idc != "No Filter" or
-        st.session_state.component_idc != "No Filter"
+        st.session_state.output_radical != "No Filter"
     )
 
 # Render controls
@@ -197,7 +203,7 @@ def render_controls(component_map):
     with st.container():
         st.markdown("### Select Input Component")
         st.caption("Choose or type a single character to explore its related characters.")
-        col1, col2, col3, col4 = st.columns([1.5, 0.2, 0.4, 0.9])
+        col1, col2, col3, col4, col5 = st.columns([1.5, 0.2, 0.4, 0.7, 0.2])
 
         with col1:
             stroke_counts = sorted(set(
@@ -210,6 +216,7 @@ def render_controls(component_map):
                 comp for comp in component_map
                 if isinstance(comp, str) and len(comp) == 1 and
                 (st.session_state.stroke_count == 0 or get_stroke_count(comp) == st.session_state.stroke_count) and
+                (st.session_state.radical == "No Filter" or component_map.get(comp, {}).get("meta", {}).get("radical", "") == st.session_state.radical) and
                 (st.session_state.component_idc == "No Filter" or component_map.get(comp, {}).get("meta", {}).get("IDC", "") == st.session_state.component_idc)
             ]
             sorted_components = sorted(filtered_components, key=lambda c: get_stroke_count(c) or 0)
@@ -223,7 +230,7 @@ def render_controls(component_map):
             else:
                 st.session_state.selected_comp = ""
                 st.session_state.text_input_comp = ""
-                st.warning("No valid components available. Please adjust the stroke count or IDC filter or check the JSON data.")
+                st.warning("No valid components available. Please adjust the stroke count, radical, or IDC filter or check the JSON data.")
 
             if sorted_components:
                 st.selectbox(
@@ -275,11 +282,24 @@ def render_controls(component_map):
                 key="component_idc"
             )
 
+        with col5:
+            radicals = {"No Filter"} | {
+                component_map.get(c, {}).get("meta", {}).get("radical", "")
+                for c in filtered_components
+                if isinstance(c, str) and len(c) == 1 and component_map.get(c, {}).get("meta", {}).get("radical", "")
+            }
+            radical_options = ["No Filter"] + sorted(radicals - {"No Filter"})
+            st.selectbox(
+                "Filter by Radical:",
+                options=radical_options,
+                key="radical"
+            )
+
     with st.container():
         st.markdown("### Filter Output Characters")
         st.caption("Customize the output by character structure and display mode.")
-        col5, col6 = st.columns(2)
-        with col5:
+        col6, col7, col8 = st.columns([0.33, 0.33, 0.34])
+        with col6:
             idcs = {"No Filter"} | {
                 component_map.get(c, {}).get("meta", {}).get("IDC", "")
                 for c in component_map.get(st.session_state.selected_comp, {}).get("related_characters", [])
@@ -293,7 +313,19 @@ def render_controls(component_map):
                 index=idc_options.index(st.session_state.selected_idc) if st.session_state.selected_idc in idc_options else 0,
                 key="selected_idc"
             )
-        with col6:
+        with col7:
+            output_radicals = {"No Filter"} | {
+                component_map.get(c, {}).get("meta", {}).get("radical", "")
+                for c in component_map.get(st.session_state.selected_comp, {}).get("related_characters", [])
+                if isinstance(c, str) and len(c) == 1 and component_map.get(c, {}).get("meta", {}).get("radical", "")
+            }
+            output_radical_options = ["No Filter"] + sorted(output_radicals - {"No Filter"})
+            st.selectbox(
+                "Result Radical:",
+                options=output_radical_options,
+                key="output_radical"
+            )
+        with col8:
             st.radio("Output Type:", ["Single Character", "2-Character Phrases", "3-Character Phrases", "4-Character Phrases"], key="display_mode")
         st.button("Reset Filters", on_click=on_reset_filters, disabled=not is_reset_needed())
 
@@ -305,7 +337,7 @@ def render_char_card(char, compounds):
         "Definition": clean_field(meta.get("definition", "No definition available")),
         "Radical": clean_field(meta.get("radical", "—")),
         "Hint": clean_field(meta.get("etymology", {}).get("hint", "No hint available")),
-        "Strikes": f"{get_stroke_count(char)} strokes" if get_stroke_count(char) is not None else "unknown strokes",
+        "Strokes": f"{get_stroke_count(char)} strokes" if get_stroke_count(char) is not None else "unknown strokes",
         "IDC": clean_field(meta.get("IDC", "—"))
     }
     details = " ".join(f"<strong>{k}:</strong> {v}" for k, v in fields.items())
@@ -343,7 +375,8 @@ def main():
     filtered_chars = [
         c for c in related
         if isinstance(c, str) and len(c) == 1 and
-        (st.session_state.selected_idc == "No Filter" or component_map.get(c, {}).get("meta", {}).get("IDC", "") == st.session_state.selected_idc)
+        (st.session_state.selected_idc == "No Filter" or component_map.get(c, {}).get("meta", {}).get("IDC", "") == st.session_state.selected_idc) and
+        (st.session_state.output_radical == "No Filter" or component_map.get(c, {}).get("meta", {}).get("radical", "") == st.session_state.output_radical)
     ]
 
     char_compounds = {
