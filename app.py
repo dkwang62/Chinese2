@@ -199,9 +199,14 @@ def render_controls(component_map):
             ))
             filtered_components = [
                 comp for comp in component_map
-                if (st.session_state.stroke_count == 0 or get_stroke_count(comp) == st.session_state.stroke_count)
+                if isinstance(comp, str) and len(comp) == 1 and
+                (st.session_state.stroke_count == 0 or get_stroke_count(comp) == st.session_state.stroke_count)
             ]
             sorted_components = sorted(filtered_components, key=lambda c: get_stroke_count(c) or 0)
+            # Debug invalid keys (uncomment for troubleshooting)
+            # invalid_keys = [k for k in component_map if not (isinstance(k, str) and len(k) == 1)]
+            # if invalid_keys:
+            #     st.warning(f"Invalid component_map keys found: {invalid_keys}")
             # Validate selected_comp and set selectbox index
             selectbox_index = 0
             if sorted_components:
@@ -212,9 +217,9 @@ def render_controls(component_map):
             else:
                 st.session_state.selected_comp = ""
                 st.session_state.text_input_comp = ""
-                st.warning("No components match the current stroke count. Please adjust the filter.")
+                st.warning("No valid components available. Please adjust the stroke count filter or check the JSON data.")
 
-            if sorted_components:  # Only render selectbox if there are options
+            if sorted_components:  # Only render selectbox if there are valid options
                 st.selectbox(
                     "Select a component:",
                     options=sorted_components,
@@ -222,7 +227,8 @@ def render_controls(component_map):
                     format_func=lambda c: (
                         f"{c} ({clean_field(component_map.get(c, {}).get('meta', {}).get('pinyin', '—'))}, "
                         f"{clean_field(component_map.get(c, {}).get('meta', {}).get('IDC', '—'))}, "
-                        f"{get_stroke_count(c)} strokes, {clean_field(component_map.get(c, {}).get('meta', {}).get('definition', 'No definition available'))})"
+                        f"{get_stroke_count(c) or 'unknown'} strokes, "
+                        f"{clean_field(component_map.get(c, {}).get('meta', {}).get('definition', 'No definition available'))})"
                     ),
                     key="selected_comp",
                     on_change=on_selectbox_change
@@ -311,7 +317,8 @@ def main():
     related = component_map.get(st.session_state.selected_comp, {}).get("related_characters", [])
     filtered_chars = [
         c for c in related
-        if (st.session_state.stroke_count == 0 or get_stroke_count(c) == st.session_state.stroke_count) and
+        if isinstance(c, str) and len(c) == 1 and
+        (st.session_state.stroke_count == 0 or get_stroke_count(c) == st.session_state.stroke_count) and
         (st.session_state.selected_idc == "No Filter" or component_map.get(c, {}).get("meta", {}).get("IDC", "") == st.session_state.selected_idc)
     ]
 
@@ -339,7 +346,8 @@ def main():
             args=(component_map,),
             format_func=lambda c: (
                 c if c == "Select a character..." else
-                f"{c} ({clean_field(component_map.get(c, {}).get('meta', {}).get('pinyin', '—'))}, {get_stroke_count(c)} strokes, "
+                f"{c} ({clean_field(component_map.get(c, {}).get('meta', {}).get('pinyin', '—'))}, "
+                f"{get_stroke_count(c) or 'unknown'} strokes, "
                 f"{clean_field(component_map.get(c, {}).get('meta', {}).get('definition', 'No definition available'))})"
             )
         )
