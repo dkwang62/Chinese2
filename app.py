@@ -138,7 +138,6 @@ def process_text_input(component_map):
         text_value = st.session_state.text_input_comp.strip()
         st.session_state.debug_info = f"Input received: '{text_value}'"
         
-        # Check if "木" is in component_map
         if "木" in component_map:
             st.session_state.debug_info += "; '木' is in component_map"
         else:
@@ -315,7 +314,6 @@ def render_controls(component_map):
             ]
             sorted_components = sorted(filtered_components, key=lambda c: get_stroke_count(c) or 0)
             
-            # Validate selected_comp
             if not sorted_components:
                 st.session_state.text_input_comp = ""
                 st.warning("No valid components available. Please adjust the stroke count, radical, or IDC filter or check the JSON data.")
@@ -341,25 +339,14 @@ def render_controls(component_map):
         with col5:
             if st.session_state.text_input_warning:
                 st.warning(st.session_state.text_input_warning)
-            with st.form(key="text_input_form"):
-                st.text_input(
-                    "Or type:",
-                    value=st.session_state.text_input_comp,
-                    key="text_input_comp",
-                    placeholder="Enter one Chinese character"
-                )
-                st.form_submit_button("Submit", on_click=process_text_input, args=(component_map,))
-
-    # JavaScript to capture paste events
-    components.html("""
-        <script>
-            document.addEventListener('paste', function(e) {
-                const text = (e.clipboardData || window.clipboardData).getData('text');
-                document.querySelector('input[data-testid="stTextInput"]').value = text;
-                document.querySelector('input[data-testid="stTextInput"]').dispatchEvent(new Event('change', { bubbles: true }));
-            });
-        </script>
-    """, height=0)
+            st.text_input(
+                "Or type:",
+                value=st.session_state.text_input_comp,
+                key="text_input_comp",
+                on_change=process_text_input,
+                args=(component_map,),
+                placeholder="Enter one Chinese character"
+            )
 
     # Output filters and results
     with st.container():
