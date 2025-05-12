@@ -155,6 +155,18 @@ def process_text_input(component_map):
             st.session_state.text_input_comp = ""
             st.session_state.text_input_warning = None
             st.session_state.debug_info += "; Valid input processed"
+            # Update the selectbox to reflect the new selected component
+            filtered_components = [
+                comp for comp in component_map
+                if isinstance(comp, str) and len(comp) == 1 and
+                (st.session_state.stroke_count == 0 or get_stroke_count(comp) == st.session_state.stroke_count) and
+                (st.session_state.radical == "No Filter" or component_map.get(comp, {}).get("meta", {}).get("radical", "") == st.session_state.radical) and
+                (st.session_state.component_idc == "No Filter" or component_map.get(comp, {}).get("meta", {}).get("IDC", "") == st.session_state.component_idc)
+            ]
+            if text_value not in filtered_components:
+                st.session_state.stroke_count = 0
+                st.session_state.radical = "No Filter"
+                st.session_state.component_idc = "No Filter"
         else:
             st.session_state.text_input_warning = "Invalid character. Please enter a valid component."
             st.session_state.text_input_comp = ""
@@ -325,9 +337,11 @@ def render_controls(component_map):
                 st.session_state.text_input_comp = ""
 
             if sorted_components:
+                index = sorted_components.index(st.session_state.selected_comp) if st.session_state.selected_comp in sorted_components else 0
                 st.selectbox(
                     "Select a component:",
                     options=sorted_components,
+                    index=index,
                     format_func=lambda c: (
                         f"{c} ({clean_field(component_map.get(c, {}).get('meta', {}).get('pinyin', '—'))}, "
                         f"{clean_field(component_map.get(c, {}).get('meta', {}).get('IDC', '—'))}, "
@@ -355,13 +369,15 @@ def render_controls(component_map):
     components.html("""
         <script>
             document.addEventListener('paste', function(e) {
-                const text = (e.clipboardData || window.clipboardData).getData('text');
+                const text = (e.clipboardData || window.clipboardData).getData('text').trim();
                 const input = document.querySelector('input[data-testid="stTextInput"]');
-                input.value = text;
-                input.dispatchEvent(new Event('input', { bubbles: true }));
-                setTimeout(() => {
-                    input.dispatchEvent(new Event('change', { bubbles: true }));
-                }, 100);
+                if (input) {
+                    input.value = text;
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    setTimeout(() => {
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                    }, 100);
+                }
             });
         </script>
     """, height=0)
@@ -390,6 +406,7 @@ def render_controls(component_map):
             output_radicals = {"No Filter"} | {
                 component_map.get(c, {}).get("meta", {}).get("radical", "")
                 for c in component_map.get(st.session_state.selected_comp, {}).get("related_characters", [])
+-motor1
                 if isinstance(c, str) and len(c) == 1 and component_map.get(c, {}).get("meta", {}).get("radical", "")
             }
             output_radical_options = ["No Filter"] + sorted(output_radicals - {"No Filter"})
