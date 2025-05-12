@@ -306,6 +306,7 @@ def render_controls(component_map):
                     format_func=lambda c: (
                         f"{c} ({clean_field(component_map.get(c, {}).get('meta', {}).get('pinyin', '—'))}, "
                         f"{clean_field(component_map.get(c, {}).get('meta', {}).get('IDC', '—'))}, "
+                        f"Radical: {clean_field(component_map.get(c, {}).get('meta', {}).get('radical', '—'))}, "
                         f"{get_stroke_count(c) or 'unknown'} strokes, "
                         f"{clean_field(component_map.get(c, {}).get('meta', {}).get('definition', 'No definition available'))})"
                     ),
