@@ -207,7 +207,6 @@ def render_controls(component_map):
     # Filter row for component input filters
     with st.container():
         st.markdown("### Component Filters")
-        st.caption Eliipsis
         st.caption("Filter components by stroke count, radical, or structure.")
         col1, col2, col3 = st.columns([0.4, 0.4, 0.4])
 
