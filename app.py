@@ -122,9 +122,11 @@ def init_session_state():
         "output_radical": selected_config["output_radical"],
         "idc_refresh": False,
         "text_input_comp": "",
+        "text_input_key": "text_input_0",
         "page": 1,
         "previous_selected_comp": selected_config["selected_comp"],
-        "text_input_warning": None
+        "text_input_warning": None,
+        "debug_info": ""
     }
     for key, value in defaults.items():
         st.session_state.setdefault(key, value)
@@ -133,26 +135,44 @@ init_session_state()
 
 # Callback functions
 def on_text_input_change(component_map):
-    text_value = st.session_state.text_input_comp.strip()
-    if len(text_value) != 1:
-        st.session_state.text_input_warning = "Please enter exactly one character."
-        st.session_state.idc_refresh = not st.session_state.idc_refresh
-        return
-    if text_value in component_map:
-        st.session_state.previous_selected_comp = st.session_state.selected_comp
-        st.session_state.selected_comp = text_value
-        st.session_state.page = 1
-        st.session_state.idc_refresh = not st.session_state.idc_refresh
-        st.session_state.text_input_warning = None
-    else:
-        st.session_state.text_input_warning = "Invalid character. Please enter a valid component."
-        st.session_state.idc_refresh = not st.session_state.idc_refresh
+    try:
+        text_value = st.session_state.text_input_comp.strip()
+        st.session_state.debug_info = f"Input received: '{text_value}'"
+        
+        # Check if "木" is in component_map for debugging
+        if "木" in component_map:
+            st.session_state.debug_info += "; '木' is in component_map"
+        else:
+            st.session_state.debug_info += "; '木' is NOT in component_map"
+
+        if len(text_value) != 1:
+            st.session_state.text_input_warning = "Please enter exactly one character."
+            st.session_state.text_input_key = f"text_input_{random.randint(1, 10000)}"
+            return
+        if text_value in component_map:
+            st.session_state.previous_selected_comp = st.session_state.selected_comp
+            st.session_state.selected_comp = text_value
+            st.session_state.page = 1
+            st.session_state.idc_refresh = not st.session_state.idc_refresh
+            st.session_state.text_input_comp = ""
+            st.session_state.text_input_warning = None
+            st.session_state.text_input_key = f"text_input_{random.randint(1, 10000)}"
+            st.session_state.debug_info += "; Valid input processed"
+        else:
+            st.session_state.text_input_warning = "Invalid character. Please enter a valid component."
+            st.session_state.text_input_key = f"text_input_{random.randint(1, 10000)}"
+            st.session_state.debug_info += "; Invalid input"
+    except Exception as e:
+        st.session_state.text_input_warning = f"Error processing input: {str(e)}"
+        st.session_state.debug_info += f"; Error: {str(e)}"
 
 def on_selectbox_change():
     st.session_state.previous_selected_comp = st.session_state.selected_comp
     st.session_state.page = 1
     st.session_state.idc_refresh = not st.session_state.idc_refresh
     st.session_state.text_input_warning = None
+    st.session_state.text_input_comp = ""
+    st.session_state.text_input_key = f"text_input_{random.randint(1, 10000)}"
 
 def on_output_char_select(component_map):
     selected_char = st.session_state.output_char_select
@@ -166,6 +186,8 @@ def on_output_char_select(component_map):
     st.session_state.page = 1
     st.session_state.idc_refresh = not st.session_state.idc_refresh
     st.session_state.text_input_warning = None
+    st.session_state.text_input_comp = ""
+    st.session_state.text_input_key = f"text_input_{random.randint(1, 10000)}"
 
 def on_reset_filters():
     st.session_state.stroke_count = 0
@@ -177,6 +199,7 @@ def on_reset_filters():
     st.session_state.idc_refresh = not st.session_state.idc_refresh
     st.session_state.text_input_warning = None
     st.session_state.text_input_comp = ""
+    st.session_state.text_input_key = f"text_input_{random.randint(1, 10000)}"
 
 def is_reset_needed():
     return (
@@ -204,6 +227,11 @@ def render_controls(component_map):
         "⿺": "Bottom Left Corner",
         "⿻": "Overlaid"
     }
+
+    # Debug output
+    with st.expander("Debug Info"):
+        st.write(f"Current text_input_comp: '{st.session_state.text_input_comp}'")
+        st.write(st.session_state.debug_info)
 
     # Filter row for component input filters
     with st.container():
@@ -321,8 +349,7 @@ def render_controls(component_map):
                 st.warning(st.session_state.text_input_warning)
             st.text_input(
                 "Or type:",
-                value=st.session_state.text_input_comp,
-                key="text_input_comp",
+                key=st.session_state.text_input_key,
                 on_change=on_text_input_change,
                 args=(component_map,),
                 placeholder="Enter one Chinese character"
