@@ -154,6 +154,7 @@ def process_text_input(component_map):
             st.session_state.text_input_comp = ""
             st.session_state.text_input_warning = None
             st.session_state.debug_info += "; Valid input processed"
+            st.experimental_rerun()  # Force rerun to update UI
         else:
             st.session_state.text_input_warning = "Invalid character. Please enter a valid component."
             st.session_state.debug_info += "; Invalid input"
@@ -347,6 +348,19 @@ def render_controls(component_map):
                 args=(component_map,),
                 placeholder="Enter one Chinese character"
             )
+
+    # JavaScript to force UI update on paste
+    components.html("""
+        <script>
+            document.addEventListener('paste', function(e) {
+                const text = (e.clipboardData || window.clipboardData).getData('text');
+                const input = document.querySelector('input[data-testid="stTextInput"]');
+                input.value = text;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+        </script>
+    """, height=0)
 
     # Output filters and results
     with st.container():
