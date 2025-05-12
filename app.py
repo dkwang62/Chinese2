@@ -263,7 +263,7 @@ def render_controls(component_map):
         with col4:
             component_idcs = {"No Filter"} | {
                 component_map.get(c, {}).get("meta", {}).get("IDC", "")
-                for c in component_map
+                for c in filtered_components
                 if isinstance(c, str) and len(c) == 1 and component_map.get(c, {}).get("meta", {}).get("IDC", "")
             }
             component_idc_options = ["No Filter"] + sorted(component_idcs - {"No Filter"})
@@ -305,7 +305,7 @@ def render_char_card(char, compounds):
         "Definition": clean_field(meta.get("definition", "No definition available")),
         "Radical": clean_field(meta.get("radical", "—")),
         "Hint": clean_field(meta.get("etymology", {}).get("hint", "No hint available")),
-        "Strokes": f"{get_stroke_count(char)} strokes" if get_stroke_count(char) is not None else "unknown strokes",
+        "Strikes": f"{get_stroke_count(char)} strokes" if get_stroke_count(char) is not None else "unknown strokes",
         "IDC": clean_field(meta.get("IDC", "—"))
     }
     details = " ".join(f"<strong>{k}:</strong> {v}" for k, v in fields.items())
