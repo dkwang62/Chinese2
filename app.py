@@ -218,7 +218,8 @@ def render_controls(component_map):
                     "Filter by Strokes:",
                     options=[0] + stroke_counts,
                     key="stroke_count",
-                    format_func=lambda x: "No Filter" if x == 0 else str(x)
+                    format_func=lambda x: "No Filter" if x == 0 else str(x),
+                    on_change=lambda: st.session_state.update(idc_refresh=not st.session_state.idc_refresh)
                 )
             else:
                 st.warning("No valid stroke counts available. Using fallback options.")
@@ -226,33 +227,39 @@ def render_controls(component_map):
                     "Filter by Strokes:",
                     options=[0],
                     key="stroke_count",
-                    format_func=lambda x: "No Filter"
+                    format_func=lambda x: "No Filter",
+                    on_change=lambda: st.session_state.update(idc_refresh=not st.session_state.idc_refresh)
                 )
 
         with col2:
-            filtered_components = [
+            pre_filtered_components = [
                 comp for comp in component_map
                 if isinstance(comp, str) and len(comp) == 1 and
-                (st.session_state.stroke_count == 0 or get_stroke_count(comp) == st.session_state.stroke_count) and
-                (st.session_state.radical == "No Filter" or component_map.get(comp, {}).get("meta", {}).get("radical", "") == st.session_state.radical) and
-                (st.session_state.component_idc == "No Filter" or component_map.get(comp, {}).get("meta", {}).get("IDC", "") == st.session_state.component_idc)
+                (st.session_state.stroke_count == 0 or get_stroke_count(comp) == st.session_state.stroke_count)
             ]
             radicals = {"No Filter"} | {
                 component_map.get(c, {}).get("meta", {}).get("radical", "")
-                for c in filtered_components
+                for c in pre_filtered_components
                 if isinstance(c, str) and len(c) == 1 and component_map.get(c, {}).get("meta", {}).get("radical", "")
             }
             radical_options = ["No Filter"] + sorted(radicals - {"No Filter"})
             st.selectbox(
                 "Filter by Radical:",
                 options=radical_options,
-                key="radical"
+                key="radical",
+                on_change=lambda: st.session_state.update(idc_refresh=not st.session_state.idc_refresh)
             )
 
         with col3:
+            pre_filtered_components = [
+                comp for comp in component_map
+                if isinstance(comp, str) and len(comp) == 1 and
+                (st.session_state.stroke_count == 0 or get_stroke_count(comp) == st.session_state.stroke_count) and
+                (st.session_state.radical == "No Filter" or component_map.get(comp, {}).get("meta", {}).get("radical", "") == st.session_state.radical)
+            ]
             component_idcs = {"No Filter"} | {
                 component_map.get(c, {}).get("meta", {}).get("IDC", "")
-                for c in filtered_components
+                for c in pre_filtered_components
                 if isinstance(c, str) and len(c) == 1 and component_map.get(c, {}).get("meta", {}).get("IDC", "")
             }
             component_idc_options = ["No Filter"] + sorted(component_idcs - {"No Filter"})
@@ -261,7 +268,8 @@ def render_controls(component_map):
                 options=component_idc_options,
                 format_func=lambda x: f"{x} ({idc_descriptions.get(x, x)})" if x != "No Filter" else x,
                 index=component_idc_options.index(st.session_state.component_idc) if st.session_state.component_idc in component_idc_options else 0,
-                key="component_idc"
+                key="component_idc",
+                on_change=lambda: st.session_state.update(idc_refresh=not st.session_state.idc_refresh)
             )
 
     # Input row for component selection
@@ -271,6 +279,13 @@ def render_controls(component_map):
         col4, col5 = st.columns([1.5, 0.2])
 
         with col4:
+            filtered_components = [
+                comp for comp in component_map
+                if isinstance(comp, str) and len(comp) == 1 and
+                (st.session_state.stroke_count == 0 or get_stroke_count(comp) == st.session_state.stroke_count) and
+                (st.session_state.radical == "No Filter" or component_map.get(comp, {}).get("meta", {}).get("radical", "") == st.session_state.radical) and
+                (st.session_state.component_idc == "No Filter" or component_map.get(comp, {}).get("meta", {}).get("IDC", "") == st.session_state.component_idc)
+            ]
             sorted_components = sorted(filtered_components, key=lambda c: get_stroke_count(c) or 0)
             selectbox_index = 0
             if sorted_components:
@@ -318,7 +333,8 @@ def render_controls(component_map):
                 options=idc_options,
                 format_func=lambda x: f"{x} ({idc_descriptions.get(x, x)})" if x != "No Filter" else x,
                 index=idc_options.index(st.session_state.selected_idc) if st.session_state.selected_idc in idc_options else 0,
-                key="selected_idc"
+                key="selected_idc",
+                on_change=lambda: st.session_state.update(idc_refresh=not st.session_state.idc_refresh)
             )
         with col7:
             output_radicals = {"No Filter"} | {
@@ -330,7 +346,8 @@ def render_controls(component_map):
             st.selectbox(
                 "Result Radical:",
                 options=output_radical_options,
-                key="output_radical"
+                key="output_radical",
+                on_change=lambda: st.session_state.update(idc_refresh=not st.session_state.idc_refresh)
             )
         with col8:
             st.radio("Output Type:", ["Single Character", "2-Character Phrases", "3-Character Phrases", "4-Character Phrases"], key="display_mode")
