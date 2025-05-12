@@ -200,10 +200,11 @@ def render_controls(component_map):
         "⿻": "Overlaid"
     }
 
+    # Filter row for component input filters
     with st.container():
-        st.markdown("### Select Input Component")
-        st.caption("Choose or type a single character to explore its related characters.")
-        col1, col2, col3, col4, col5 = st.columns([1.5, 0.2, 0.4, 0.7, 0.2])
+        st.markdown("### Component Filters")
+        st.caption("Filter components by stroke count, radical, or structure.")
+        col1, col2, col3 = st.columns([0.4, 0.4, 0.4])
 
         with col1:
             stroke_counts = sorted(set(
@@ -212,6 +213,23 @@ def render_controls(component_map):
                     if isinstance(comp, str) and len(comp) == 1
                 ) if isinstance(sc, int) and sc > 0
             ))
+            if stroke_counts:
+                st.selectbox(
+                    "Filter by Strokes:",
+                    options=[0] + stroke_counts,
+                    key="stroke_count",
+                    format_func=lambda x: "No Filter" if x == 0 else str(x)
+                )
+            else:
+                st.warning("No valid stroke counts available. Using fallback options.")
+                st.selectbox(
+                    "Filter by Strokes:",
+                    options=[0],
+                    key="stroke_count",
+                    format_func=lambda x: "No Filter"
+                )
+
+        with col2:
             filtered_components = [
                 comp for comp in component_map
                 if isinstance(comp, str) and len(comp) == 1 and
@@ -219,8 +237,41 @@ def render_controls(component_map):
                 (st.session_state.radical == "No Filter" or component_map.get(comp, {}).get("meta", {}).get("radical", "") == st.session_state.radical) and
                 (st.session_state.component_idc == "No Filter" or component_map.get(comp, {}).get("meta", {}).get("IDC", "") == st.session_state.component_idc)
             ]
-            sorted_components = sorted(filtered_components, key=lambda c: get_stroke_count(c) or 0)
+            radicals = {"No Filter"} | {
+                component_map.get(c, {}).get("meta", {}).get("radical", "")
+                for c in filtered_components
+                if isinstance(c, str) and len(c) == 1 and component_map.get(c, {}).get("meta", {}).get("radical", "")
+            }
+            radical_options = ["No Filter"] + sorted(radicals - {"No Filter"})
+            st.selectbox(
+                "Filter by Radical:",
+                options=radical_options,
+                key="radical"
+            )
 
+        with col3:
+            component_idcs = {"No Filter"} | {
+                component_map.get(c, {}).get("meta", {}).get("IDC", "")
+                for c in filtered_components
+                if isinstance(c, str) and len(c) == 1 and component_map.get(c, {}).get("meta", {}).get("IDC", "")
+            }
+            component_idc_options = ["No Filter"] + sorted(component_idcs - {"No Filter"})
+            st.selectbox(
+                "Filter by Structure IDC:",
+                options=component_idc_options,
+                format_func=lambda x: f"{x} ({idc_descriptions.get(x, x)})" if x != "No Filter" else x,
+                index=component_idc_options.index(st.session_state.component_idc) if st.session_state.component_idc in component_idc_options else 0,
+                key="component_idc"
+            )
+
+    # Input row for component selection
+    with st.container():
+        st.markdown("### Select Input Component")
+        st.caption("Choose or type a single character to explore its related characters.")
+        col4, col5 = st.columns([1.5, 0.2])
+
+        with col4:
+            sorted_components = sorted(filtered_components, key=lambda c: get_stroke_count(c) or 0)
             selectbox_index = 0
             if sorted_components:
                 if st.session_state.selected_comp not in sorted_components:
@@ -247,54 +298,10 @@ def render_controls(component_map):
                     on_change=on_selectbox_change
                 )
 
-        with col2:
+        with col5:
             st.text_input("Or type:", key="text_input_comp", on_change=on_text_input_change, args=(component_map,))
 
-        with col3:
-            if stroke_counts:
-                st.selectbox(
-                    "Filter by Strokes:",
-                    options=[0] + stroke_counts,
-                    key="stroke_count",
-                    format_func=lambda x: "No Filter" if x == 0 else str(x)
-                )
-            else:
-                st.warning("No valid stroke counts available. Using fallback options.")
-                st.selectbox(
-                    "Filter by Strokes:",
-                    options=[0],
-                    key="stroke_count",
-                    format_func=lambda x: "No Filter"
-                )
-
-        with col4:
-            component_idcs = {"No Filter"} | {
-                component_map.get(c, {}).get("meta", {}).get("IDC", "")
-                for c in filtered_components
-                if isinstance(c, str) and len(c) == 1 and component_map.get(c, {}).get("meta", {}).get("IDC", "")
-            }
-            component_idc_options = ["No Filter"] + sorted(component_idcs - {"No Filter"})
-            st.selectbox(
-                "Filter by Structure IDC:",
-                options=component_idc_options,
-                format_func=lambda x: f"{x} ({idc_descriptions.get(x, x)})" if x != "No Filter" else x,
-                index=component_idc_options.index(st.session_state.component_idc) if st.session_state.component_idc in component_idc_options else 0,
-                key="component_idc"
-            )
-
-        with col5:
-            radicals = {"No Filter"} | {
-                component_map.get(c, {}).get("meta", {}).get("radical", "")
-                for c in filtered_components
-                if isinstance(c, str) and len(c) == 1 and component_map.get(c, {}).get("meta", {}).get("radical", "")
-            }
-            radical_options = ["No Filter"] + sorted(radicals - {"No Filter"})
-            st.selectbox(
-                "Filter by Radical:",
-                options=radical_options,
-                key="radical"
-            )
-
+    # Output filters and results
     with st.container():
         st.markdown("### Filter Output Characters")
         st.caption("Customize the output by character structure and display mode.")
