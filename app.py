@@ -75,42 +75,15 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Load component map
-@st.cache_data
-def load_component_map():
-    try:
-        with open("enhanced_component_map_with_etymology.json", "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception as e:
-        st.error(f"Failed to load enhanced_component_map_with_etymology.json: {e}")
-        return {}
-
-component_map = load_component_map()
-
-# Utility functions
-def clean_field(field):
-    return field[0] if isinstance(field, list) and field else field or "—"
-
-def get_stroke_count(char):
-    strokes = component_map.get(char, {}).get("meta", {}).get("strokes", None)
-    try:
-        if isinstance(strokes, (int, float)) and strokes > 0:
-            return int(strokes)
-        elif isinstance(strokes, str) and strokes.isdigit():
-            return int(strokes)
-    except (TypeError, ValueError):
-        pass
-    return None
-
-# Session state initialization
+# Initialize session state
 def init_session_state():
     config_options = [
         {"selected_comp": "爫", "stroke_count": 4, "selected_idc": "No Filter", "component_idc": "No Filter", "display_mode": "Single Character"},
-        {"selected_comp": "心", "stroke_count": 4, "selected_idc": "No Filter", "component_idc": "No Filter", "display_mode": "2-Character Phrases"},
+        {"selected_comp": "心", "stroke_count": 4, "selected_idc": "No Filter", "component_idc": "⿱", "display_mode": "2-Character Phrases"},
         {"selected_comp": "⺌", "stroke_count": 3, "selected_idc": "No Filter", "component_idc": "No Filter", "display_mode": "3-Character Phrases"},
         {"selected_comp": "㐱", "stroke_count": 5, "selected_idc": "No Filter", "component_idc": "No Filter", "display_mode": "Single Character"},
         {"selected_comp": "覀", "stroke_count": 6, "selected_idc": "No Filter", "component_idc": "No Filter", "display_mode": "2-Character Phrases"},
-        {"selected_comp": "豕", "stroke_count": 7, "selected_idc": "No Filter", "component_idc": "No Filter", "display_mode": "3-Character Phrases"}
+        {"selected_comp": "豕", "stroke_count": 7, "selected_idc": "No Filter", "component_idc": "⿰", "display_mode": "3-Character Phrases"}
     ]
     selected_config = random.choice(config_options)
     defaults = {
@@ -119,16 +92,74 @@ def init_session_state():
         "display_mode": selected_config["display_mode"],
         "selected_idc": selected_config["selected_idc"],
         "component_idc": selected_config["component_idc"],
+        "idc_refresh": False,
         "text_input_comp": selected_config["selected_comp"],
         "page": 1,
-        "results_per_page": 50,
-        "previous_selected_comp": selected_config["selected_comp"],
-        "output_char_select": "Select a character..."
+        "previous_selected_comp": selected_config["selected_comp"]
     }
     for key, value in defaults.items():
         st.session_state.setdefault(key, value)
 
 init_session_state()
+
+# Load character decomposition data
+@st.cache_data
+def load_char_decomp():
+    try:
+        with open("strokes1.json", "r", encoding="utf-8") as f:
+            return {entry["character"]: entry for entry in json.load(f)}
+    except Exception as e:
+        st.error(f"Failed to load strokes1.json: {e}")
+        return {}
+
+char_decomp = load_char_decomp()
+
+# Utility functions
+def is_valid_char(c):
+    return ('一' <= c <= '鿿' or '⺀' <= c <= '⻿' or '㐀' <= c <= '䶿' or '𠀀' <= c <= '𪛟')
+
+def get_stroke_count(char):
+    strokes = char_decomp.get(char, {}).get("strokes", -1)
+    try:
+        if isinstance(strokes, (int, float)) and strokes > 0:
+            return int(strokes)
+        elif isinstance(strokes, str) and strokes.isdigit():
+            return int(strokes)
+    except (TypeError, ValueError):
+        pass
+    return -1
+
+def clean_field(field):
+    return field[0] if isinstance(field, list) and field else field or "—"
+
+def get_all_components(char, max_depth, depth=0, seen=None):
+    if seen is None:
+        seen = set()
+    if char in seen or depth > max_depth or not is_valid_char(char):
+        return set()
+    seen.add(char)
+    components = set()
+    decomposition = char_decomp.get(char, {}).get("decomposition", "")
+    for comp in decomposition:
+        if comp in IDC_CHARS:
+            continue
+        components.add(comp)
+        components.update(get_all_components(comp, max_depth, depth + 1, seen.copy()))
+    return components
+
+@st.cache_data
+def build_component_map(max_depth=5):
+    component_map = defaultdict(list)
+    for char in char_decomp:
+        components = {char}
+        decomposition = char_decomp.get(char, {}).get("decomposition", "")
+        for comp in decomposition:
+            if is_valid_char(comp):
+                components.add(comp)
+                components.update(get_all_components(comp, max_depth))
+        for comp in components:
+            component_map[comp].append(char)
+    return component_map
 
 # Callback functions
 def on_text_input_change(component_map):
@@ -136,10 +167,11 @@ def on_text_input_change(component_map):
     if len(text_value) != 1:
         st.warning("Please enter exactly one character.")
         return
-    if text_value in component_map:
+    if text_value in component_map or text_value in char_decomp:
         st.session_state.previous_selected_comp = st.session_state.selected_comp
         st.session_state.selected_comp = text_value
         st.session_state.page = 1
+        st.session_state.idc_refresh = not st.session_state.idc_refresh
     else:
         st.warning("Invalid character. Please enter a valid component.")
         st.session_state.text_input_comp = st.session_state.selected_comp
@@ -147,6 +179,7 @@ def on_text_input_change(component_map):
 def on_selectbox_change():
     st.session_state.previous_selected_comp = st.session_state.selected_comp
     st.session_state.page = 1
+    st.session_state.idc_refresh = not st.session_state.idc_refresh
     st.session_state.text_input_comp = st.session_state.selected_comp
 
 def on_output_char_select(component_map):
@@ -160,18 +193,21 @@ def on_output_char_select(component_map):
     st.session_state.selected_comp = selected_char
     st.session_state.text_input_comp = selected_char
     st.session_state.page = 1
+    st.session_state.idc_refresh = not st.session_state.idc_refresh
 
 def on_reset_filters():
     st.session_state.stroke_count = 0
-    st.session_state.selected_idc = "No Filter"
     st.session_state.component_idc = "No Filter"
+    st.session_state.selected_idc = "No Filter"
+    st.session_state.text_input_comp = st.session_state.selected_comp
     st.session_state.page = 1
+    st.session_state.idc_refresh = not st.session_state.idc_refresh
 
 def is_reset_needed():
     return (
         st.session_state.stroke_count != 0 or
-        st.session_state.selected_idc != "No Filter" or
-        st.session_state.component_idc != "No Filter"
+        st.session_state.component_idc != "No Filter" or
+        st.session_state.selected_idc != "No Filter"
     )
 
 # Render controls
@@ -198,20 +234,20 @@ def render_controls(component_map):
         col1, col2, col3, col4 = st.columns([1.5, 0.2, 0.4, 0.9])
 
         with col1:
-            stroke_counts = sorted(set(
-                sc for sc in (
-                    get_stroke_count(comp) for comp in component_map
-                    if isinstance(comp, str) and len(comp) == 1
-                ) if isinstance(sc, int) and sc > 0
-            ))
+            stroke_counts = sorted(set(get_stroke_count(comp) for comp in component_map if get_stroke_count(comp) != -1))
+            component_idc_options = {"No Filter"} | {
+                char_decomp.get(comp, {}).get("decomposition", "")[0]
+                for comp in component_map
+                if char_decomp.get(comp, {}).get("decomposition", "") and char_decomp.get(comp, {}).get("decomposition", "")[0] in IDC_CHARS
+            }
             filtered_components = [
                 comp for comp in component_map
-                if isinstance(comp, str) and len(comp) == 1 and
-                (st.session_state.stroke_count == 0 or get_stroke_count(comp) == st.session_state.stroke_count) and
-                (st.session_state.component_idc == "No Filter" or component_map.get(comp, {}).get("meta", {}).get("IDC", "") == st.session_state.component_idc)
+                if (st.session_state.stroke_count == 0 or get_stroke_count(comp) == st.session_state.stroke_count) and
+                (st.session_state.component_idc == "No Filter" or
+                 char_decomp.get(comp, {}).get("decomposition", "").startswith(st.session_state.component_idc)) and
+                get_stroke_count(comp) > 1
             ]
-            sorted_components = sorted(filtered_components, key=lambda c: get_stroke_count(c) or 0)
-
+            sorted_components = sorted(filtered_components, key=get_stroke_count)
             selectbox_index = 0
             if sorted_components:
                 if st.session_state.selected_comp not in sorted_components:
@@ -221,7 +257,7 @@ def render_controls(component_map):
             else:
                 st.session_state.selected_comp = ""
                 st.session_state.text_input_comp = ""
-                st.warning("No valid components available. Please adjust the stroke count or IDC filter or check the JSON data.")
+                st.warning("No components match the current filters. Please adjust the stroke count or IDC filters.")
 
             if sorted_components:
                 st.selectbox(
@@ -229,10 +265,9 @@ def render_controls(component_map):
                     options=sorted_components,
                     index=selectbox_index,
                     format_func=lambda c: (
-                        f"{c} ({clean_field(component_map.get(c, {}).get('meta', {}).get('pinyin', '—'))}, "
-                        f"{clean_field(component_map.get(c, {}).get('meta', {}).get('IDC', '—'))}, "
-                        f"{get_stroke_count(c) or 'unknown'} strokes, "
-                        f"{clean_field(component_map.get(c, {}).get('meta', {}).get('definition', 'No definition available'))})"
+                        f"{c} ({clean_field(char_decomp.get(c, {}).get('pinyin', '—'))}, "
+                        f"{char_decomp.get(c, {}).get('decomposition', '—')[0] if char_decomp.get(c, {}).get('decomposition', '') and char_decomp.get(c, {}).get('decomposition', '')[0] in IDC_CHARS else '—'}, "
+                        f"{get_stroke_count(c)} strokes, {clean_field(char_decomp.get(c, {}).get('definition', 'No definition available'))})"
                     ),
                     key="selected_comp",
                     on_change=on_selectbox_change
@@ -242,69 +277,52 @@ def render_controls(component_map):
             st.text_input("Or type:", key="text_input_comp", on_change=on_text_input_change, args=(component_map,))
 
         with col3:
-            if stroke_counts:
-                st.selectbox(
-                    "Filter by Strokes:",
-                    options=[0] + stroke_counts,
-                    key="stroke_count",
-                    format_func=lambda x: "No Filter" if x == 0 else str(x)
-                )
-            else:
-                st.warning("No valid stroke counts available. Using fallback options.")
-                st.selectbox(
-                    "Filter by Strokes:",
-                    options=[0],
-                    key="stroke_count",
-                    format_func=lambda x: "No Filter"
-                )
+            st.selectbox("Filter by Strokes:", options=[0] + stroke_counts, key="stroke_count")
 
         with col4:
-            component_idcs = {"No Filter"} | {
-                component_map.get(c, {}).get("meta", {}).get("IDC", "")
-                for c in component_map
-                if isinstance(c, str) and len(c) == 1 and component_map.get(c, {}).get("meta", {}).get("IDC", "")
-            }
-            component_idc_options = ["No Filter"] + sorted(component_idcs - {"No Filter"})
+            component_idc_options = ["No Filter"] + sorted(component_idc_options - {"No Filter"})
             st.selectbox(
-                "Component IDC:",
+                "Filter by Structure IDC:",
                 options=component_idc_options,
-                format_func=lambda x: f"{x} ({idc_descriptions.get(x, x)})" if x != "No Filter" else x,
-                index=component_idc_options.index(st.session_state.component_idc) if st.session_state.component_idc in component_idc_options else 0,
+                format_func=lambda x: f"{x} ({idc_descriptions[x]})" if x != "No Filter" else x,
                 key="component_idc"
             )
 
-            idcs = {"No Filter"} | {
-                component_map.get(c, {}).get("meta", {}).get("IDC", "")
-                for c in component_map.get(st.session_state.selected_comp, {}).get("related_characters", [])
-                if isinstance(c, str) and len(c) == 1 and component_map.get(c, {}).get("meta", {}).get("IDC", "")
+    with st.container():
+        st.markdown("### Filter Output Characters")
+        st.caption("Customize the output by character structure and display mode.")
+        col5, col6 = st.columns(2)
+        with col5:
+            chars = component_map.get(st.session_state.selected_comp, [])
+            dynamic_idc_options = {"No Filter"} | {
+                char_decomp.get(char, {}).get("decomposition", "")[0]
+                for char in chars
+                if char_decomp.get(char, {}).get("decomposition", "") and char_decomp.get(char, {}).get("decomposition", "")[0] in IDC_CHARS
             }
-            idc_options = ["No Filter"] + sorted(idcs - {"No Filter"})
+            idc_options = ["No Filter"] + sorted(dynamic_idc_options - {"No Filter"})
             st.selectbox(
-                "Output IDC:",
+                "Result IDC:",
                 options=idc_options,
                 format_func=lambda x: f"{x} ({idc_descriptions.get(x, x)})" if x != "No Filter" else x,
                 index=idc_options.index(st.session_state.selected_idc) if st.session_state.selected_idc in idc_options else 0,
                 key="selected_idc"
             )
-
-    with st.container():
-        st.markdown("### Filter Output Characters")
-        st.caption("Customize the output by display mode.")
-        st.radio("Output Type:", ["Single Character", "2-Character Phrases", "3-Character Phrases", "4-Character Phrases"], key="display_mode")
-
-    with st.container():
+        with col6:
+            st.radio("Output Type:", options=["Single Character", "2-Character Phrases", "3-Character Phrases", "4-Character Phrases"], key="display_mode")
         st.button("Reset Filters", on_click=on_reset_filters, disabled=not is_reset_needed())
 
 # Render character card
 def render_char_card(char, compounds):
-    meta = component_map.get(char, {}).get("meta", {})
+    entry = char_decomp.get(char, {})
+    decomposition = entry.get("decomposition", "")
+    idc = decomposition[0] if decomposition and decomposition[0] in IDC_CHARS else "—"
     fields = {
-        "Pinyin": clean_field(meta.get("pinyin", "—")),
-        "Definition": clean_field(meta.get("definition", "No definition available")),
-        "Radical": clean_field(meta.get("radical", "—")),
-        "Hint": clean_field(meta.get("etymology", {}).get("hint", "No hint available")),
-        "Strokes": f"{get_stroke_count(char)} strokes" if get_stroke_count(char) is not None else "unknown strokes",
-        "IDC": clean_field(meta.get("IDC", "—"))
+        "Pinyin": clean_field(entry.get("pinyin", "—")),
+        "Definition": clean_field(entry.get("definition", "No definition available")),
+        "Radical": clean_field(entry.get("radical", "—")),
+        "Hint": clean_field(entry.get("etymology", {}).get("hint", "No hint available")),
+        "Strokes": f"{get_stroke_count(char)} strokes" if get_stroke_count(char) != -1 else "unknown strokes",
+        "IDC": idc
     }
     details = " ".join(f"<strong>{k}:</strong> {v}" for k, v in fields.items())
     st.markdown(f"""<div class='char-card'><h3 class='char-title'>{char}</h3><p class='details'>{details}</p>""", unsafe_allow_html=True)
@@ -315,47 +333,43 @@ def render_char_card(char, compounds):
 
 # Main function
 def main():
-    if not component_map:
+    component_map = build_component_map(max_depth=5)
+    if not char_decomp:
         st.error("No data available. Please check the JSON file.")
         return
 
     st.markdown("<h1>🧩 Character Decomposition Explorer</h1>", unsafe_allow_html=True)
     render_controls(component_map)
-
     if not st.session_state.selected_comp:
         st.info("Please select or type a component to view results.")
         return
 
-    meta = component_map.get(st.session_state.selected_comp, {}).get("meta", {})
+    entry = char_decomp.get(st.session_state.selected_comp, {})
     fields = {
-        "Pinyin": clean_field(meta.get("pinyin", "—")),
-        "Definition": clean_field(meta.get("definition", "No definition available")),
-        "Radical": clean_field(meta.get("radical", "—")),
-        "Hint": clean_field(meta.get("etymology", {}).get("hint", "No hint available")),
-        "Strokes": f"{get_stroke_count(st.session_state.selected_comp)} strokes" if get_stroke_count(st.session_state.selected_comp) is not None else "unknown strokes",
-        "IDC": clean_field(meta.get("IDC", "—"))
+        "Pinyin": clean_field(entry.get("pinyin", "—")),
+        "Definition": clean_field(entry.get("definition", "No definition available")),
+        "Radical": clean_field(entry.get("radical", "—")),
+        "Hint": clean_field(entry.get("etymology", {}).get("hint", "No hint available")),
+        "Strokes": f"{get_stroke_count(st.session_state.selected_comp)} strokes" if get_stroke_count(st.session_state.selected_comp) != -1 else "unknown strokes"
     }
     details = " ".join(f"<strong>{k}:</strong> {v}" for k, v in fields.items())
     st.markdown(f"""<div class='selected-card'><h2 class='selected-char'>{st.session_state.selected_comp}</h2><p class='details'>{details}</p></div>""", unsafe_allow_html=True)
 
-    related = component_map.get(st.session_state.selected_comp, {}).get("related_characters", [])
-    filtered_chars = [
-        c for c in related
-        if isinstance(c, str) and len(c) == 1 and
-        (st.session_state.selected_idc == "No Filter" or component_map.get(c, {}).get("meta", {}).get("IDC", "") == st.session_state.selected_idc)
-    ]
+    chars = [c for c in component_map.get(st.session_state.selected_comp, []) if c in char_decomp]
+    if st.session_state.selected_idc != "No Filter":
+        chars = [c for c in chars if char_decomp.get(c, {}).get("decomposition", "").startswith(st.session_state.selected_idc)]
 
     char_compounds = {
         c: [] if st.session_state.display_mode == "Single Character" else [
-            comp for comp in component_map.get(c, {}).get("meta", {}).get("compounds", [])
+            comp for comp in char_decomp.get(c, {}).get("compounds", [])
             if len(comp) == int(st.session_state.display_mode[0])
         ]
-        for c in filtered_chars
+        for c in chars
     }
-    filtered_chars = [c for c in filtered_chars if st.session_state.display_mode == "Single Character" or char_compounds[c]]
+    filtered_chars = chars if st.session_state.display_mode == "Single Character" else [c for c in chars if char_compounds[c]]
 
     if filtered_chars:
-        options = ["Select a character..."] + sorted(filtered_chars, key=lambda c: get_stroke_count(c) or 0)
+        options = ["Select a character..."] + sorted(filtered_chars, key=get_stroke_count)
         if (st.session_state.previous_selected_comp and
                 st.session_state.previous_selected_comp != st.session_state.selected_comp and
                 st.session_state.previous_selected_comp not in filtered_chars and
@@ -369,14 +383,13 @@ def main():
             args=(component_map,),
             format_func=lambda c: (
                 c if c == "Select a character..." else
-                f"{c} ({clean_field(component_map.get(c, {}).get('meta', {}).get('pinyin', '—'))}, "
-                f"{get_stroke_count(c) or 'unknown'} strokes, "
-                f"{clean_field(component_map.get(c, {}).get('meta', {}).get('definition', 'No definition available'))})"
+                f"{c} ({clean_field(char_decomp.get(c, {}).get('pinyin', '—'))}, {get_stroke_count(c)} strokes, "
+                f"{clean_field(char_decomp.get(c, {}).get('definition', 'No definition available'))})"
             )
         )
 
     st.markdown(f"<h2 class='results-header'>🧬 Results for {st.session_state.selected_comp} — {len(filtered_chars)} result(s)</h2>", unsafe_allow_html=True)
-    for char in sorted(filtered_chars, key=lambda c: get_stroke_count(c) or 0):
+    for char in sorted(filtered_chars, key=get_stroke_count):
         render_char_card(char, char_compounds.get(char, []))
 
     if filtered_chars and st.session_state.display_mode != "Single Character":
@@ -395,14 +408,6 @@ def main():
                 const copyText = document.getElementById("copyTarget");
                 copyText.select();
                 document.execCommand("copy");
-                </script>
-                <!-- Modern Clipboard API (commented out due to Streamlit Cloud sandbox limitations) -->
-                <script>
-                navigator.clipboard.writeText("{export_text}").then(() => {{
-                    console.log('Text copied to clipboard');
-                }}).catch(err => {{
-                    console.error('Failed to copy text: ', err);
-                }});
                 </script>
             """, height=0)
 
