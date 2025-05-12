@@ -343,7 +343,6 @@ def main():
     filtered_chars = [
         c for c in related
         if isinstance(c, str) and len(c) == 1 and
-        (st.session_state.stroke_count == 0 or get_stroke_count(c) == st.session_state.stroke_count) and
         (st.session_state.selected_idc == "No Filter" or component_map.get(c, {}).get("meta", {}).get("IDC", "") == st.session_state.selected_idc)
     ]
 
