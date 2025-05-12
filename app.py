@@ -107,7 +107,7 @@ def init_session_state():
     selected_config = random.choice(config_options)
     defaults = {
         "selected_comp": selected_config["selected_comp"],
-        "stroke_range": (selected_config["stroke_count"], 14),
+        "stroke_count": selected_config["stroke_count"],
         "display_mode": selected_config["display_mode"],
         "selected_idc": selected_config["selected_idc"],
         "text_input_comp": selected_config["selected_comp"],
@@ -153,7 +153,7 @@ def on_output_char_select(component_map):
     st.session_state.page = 1
 
 def on_reset_filters():
-    st.session_state.stroke_range = (0, 30)
+    st.session_state.stroke_count = 0
     st.session_state.selected_idc = "No Filter"
     st.session_state.display_mode = "Single Character"
     st.session_state.text_input_comp = st.session_state.selected_comp
@@ -161,7 +161,7 @@ def on_reset_filters():
 
 def is_reset_needed():
     return (
-        st.session_state.stroke_range != (0, 30) or
+        st.session_state.stroke_count != 0 or
         st.session_state.selected_idc != "No Filter" or
         st.session_state.display_mode != "Single Character"
     )
@@ -187,13 +187,13 @@ def render_controls(component_map):
     with st.container():
         st.markdown("### Select Input Component")
         st.caption("Choose or type a single character to explore its related characters.")
-        col1, col2, col3 = st.columns([1.5, 0.2, 0.9])
+        col1, col2, col3, col4 = st.columns([1.5, 0.2, 0.4, 0.9])
 
         with col1:
-            min_strokes, max_strokes = st.session_state.stroke_range
+            stroke_counts = sorted(set(get_stroke_count(comp) for comp in component_map if get_stroke_count(comp) != -1))
             filtered_components = [
                 comp for comp in component_map
-                if min_strokes <= get_stroke_count(comp) <= max_strokes
+                if (st.session_state.stroke_count == 0 or get_stroke_count(comp) == st.session_state.stroke_count)
             ]
             sorted_components = sorted(filtered_components, key=get_stroke_count)
             # Validate selected_comp and set selectbox index
@@ -206,7 +206,7 @@ def render_controls(component_map):
             else:
                 st.session_state.selected_comp = ""
                 st.session_state.text_input_comp = ""
-                st.warning("No components match the current stroke range. Please adjust the filters.")
+                st.warning("No components match the current stroke count. Please adjust the filter.")
 
             if sorted_components:  # Only render selectbox if there are options
                 st.selectbox(
@@ -226,6 +226,9 @@ def render_controls(component_map):
             st.text_input("Or type:", key="text_input_comp", on_change=on_text_input_change, args=(component_map,))
 
         with col3:
+            st.selectbox("Filter by Strokes:", options=[0] + stroke_counts, key="stroke_count", format_func=lambda x: "No Filter" if x == 0 else x)
+
+        with col4:
             idcs = {"No Filter"} | {
                 component_map.get(c, {}).get("meta", {}).get("IDC", "")
                 for c in component_map.get(st.session_state.selected_comp, {}).get("related_characters", [])
@@ -239,9 +242,6 @@ def render_controls(component_map):
                 index=idc_options.index(st.session_state.selected_idc) if st.session_state.selected_idc in idc_options else 0,
                 key="selected_idc"
             )
-
-    with st.container():
-        st.slider("Stroke Range:", 0, 30, st.session_state.stroke_range, key="stroke_range")
 
     with st.container():
         st.markdown("### Filter Output Characters")
@@ -294,11 +294,10 @@ def main():
     details = " ".join(f"<strong>{k}:</strong> {v}" for k, v in fields.items())
     st.markdown(f"""<div class='selected-card'><h2 class='selected-char'>{st.session_state.selected_comp}</h2><p class='details'>{details}</p></div>""", unsafe_allow_html=True)
 
-    min_strokes, max_strokes = st.session_state.stroke_range
     related = component_map.get(st.session_state.selected_comp, {}).get("related_characters", [])
     filtered_chars = [
         c for c in related
-        if min_strokes <= get_stroke_count(c) <= max_strokes and
+        if (st.session_state.stroke_count == 0 or get_stroke_count(c) == st.session_state.stroke_count) and
         (st.session_state.selected_idc == "No Filter" or component_map.get(c, {}).get("meta", {}).get("IDC", "") == st.session_state.selected_idc)
     ]
 
