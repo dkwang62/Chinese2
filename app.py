@@ -122,7 +122,6 @@ def init_session_state():
         "output_radical": selected_config["output_radical"],
         "idc_refresh": False,
         "text_input_comp": "",
-        "text_input_key": "text_input_0",
         "page": 1,
         "previous_selected_comp": selected_config["selected_comp"],
         "text_input_warning": None,
@@ -134,12 +133,12 @@ def init_session_state():
 init_session_state()
 
 # Callback functions
-def on_text_input_change(component_map):
+def process_text_input(component_map):
     try:
         text_value = st.session_state.text_input_comp.strip()
         st.session_state.debug_info = f"Input received: '{text_value}'"
         
-        # Check if "木" is in component_map for debugging
+        # Check if "木" is in component_map
         if "木" in component_map:
             st.session_state.debug_info += "; '木' is in component_map"
         else:
@@ -147,7 +146,6 @@ def on_text_input_change(component_map):
 
         if len(text_value) != 1:
             st.session_state.text_input_warning = "Please enter exactly one character."
-            st.session_state.text_input_key = f"text_input_{random.randint(1, 10000)}"
             return
         if text_value in component_map:
             st.session_state.previous_selected_comp = st.session_state.selected_comp
@@ -156,11 +154,9 @@ def on_text_input_change(component_map):
             st.session_state.idc_refresh = not st.session_state.idc_refresh
             st.session_state.text_input_comp = ""
             st.session_state.text_input_warning = None
-            st.session_state.text_input_key = f"text_input_{random.randint(1, 10000)}"
             st.session_state.debug_info += "; Valid input processed"
         else:
             st.session_state.text_input_warning = "Invalid character. Please enter a valid component."
-            st.session_state.text_input_key = f"text_input_{random.randint(1, 10000)}"
             st.session_state.debug_info += "; Invalid input"
     except Exception as e:
         st.session_state.text_input_warning = f"Error processing input: {str(e)}"
@@ -172,7 +168,6 @@ def on_selectbox_change():
     st.session_state.idc_refresh = not st.session_state.idc_refresh
     st.session_state.text_input_warning = None
     st.session_state.text_input_comp = ""
-    st.session_state.text_input_key = f"text_input_{random.randint(1, 10000)}"
 
 def on_output_char_select(component_map):
     selected_char = st.session_state.output_char_select
@@ -187,7 +182,6 @@ def on_output_char_select(component_map):
     st.session_state.idc_refresh = not st.session_state.idc_refresh
     st.session_state.text_input_warning = None
     st.session_state.text_input_comp = ""
-    st.session_state.text_input_key = f"text_input_{random.randint(1, 10000)}"
 
 def on_reset_filters():
     st.session_state.stroke_count = 0
@@ -199,7 +193,6 @@ def on_reset_filters():
     st.session_state.idc_refresh = not st.session_state.idc_refresh
     st.session_state.text_input_warning = None
     st.session_state.text_input_comp = ""
-    st.session_state.text_input_key = f"text_input_{random.randint(1, 10000)}"
 
 def is_reset_needed():
     return (
@@ -231,6 +224,7 @@ def render_controls(component_map):
     # Debug output
     with st.expander("Debug Info"):
         st.write(f"Current text_input_comp: '{st.session_state.text_input_comp}'")
+        st.write(f"Current selected_comp: '{st.session_state.selected_comp}'")
         st.write(st.session_state.debug_info)
 
     # Filter row for component input filters
@@ -347,13 +341,25 @@ def render_controls(component_map):
         with col5:
             if st.session_state.text_input_warning:
                 st.warning(st.session_state.text_input_warning)
-            st.text_input(
-                "Or type:",
-                key=st.session_state.text_input_key,
-                on_change=on_text_input_change,
-                args=(component_map,),
-                placeholder="Enter one Chinese character"
-            )
+            with st.form(key="text_input_form"):
+                st.text_input(
+                    "Or type:",
+                    value=st.session_state.text_input_comp,
+                    key="text_input_comp",
+                    placeholder="Enter one Chinese character"
+                )
+                st.form_submit_button("Submit", on_click=process_text_input, args=(component_map,))
+
+    # JavaScript to capture paste events
+    components.html("""
+        <script>
+            document.addEventListener('paste', function(e) {
+                const text = (e.clipboardData || window.clipboardData).getData('text');
+                document.querySelector('input[data-testid="stTextInput"]').value = text;
+                document.querySelector('input[data-testid="stTextInput"]').dispatchEvent(new Event('change', { bubbles: true }));
+            });
+        </script>
+    """, height=0)
 
     # Output filters and results
     with st.container():
