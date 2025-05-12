@@ -155,7 +155,7 @@ def process_text_input(component_map):
             st.session_state.text_input_comp = ""
             st.session_state.text_input_warning = None
             st.session_state.debug_info += "; Valid input processed"
-            # Update the selectbox to reflect the new selected component
+            # Reset filters if the new component doesn't match current filters
             filtered_components = [
                 comp for comp in component_map
                 if isinstance(comp, str) and len(comp) == 1 and
@@ -406,7 +406,6 @@ def render_controls(component_map):
             output_radicals = {"No Filter"} | {
                 component_map.get(c, {}).get("meta", {}).get("radical", "")
                 for c in component_map.get(st.session_state.selected_comp, {}).get("related_characters", [])
--motor1
                 if isinstance(c, str) and len(c) == 1 and component_map.get(c, {}).get("meta", {}).get("radical", "")
             }
             output_radical_options = ["No Filter"] + sorted(output_radicals - {"No Filter"})
