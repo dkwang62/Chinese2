@@ -10,7 +10,7 @@ st.set_page_config(layout="wide")
 # Global IDC characters
 IDC_CHARS = {'⿰', '⿱', '⿲', '⿳', '⿴', '⿵', '⿶', '⿷', '⿸', '⿹', '⿺', '⿻'}
 
-# Custom CSS (identical to previous version)
+# Custom CSS (unchanged)
 st.markdown("""
 <style>
     .selected-card {
@@ -95,9 +95,10 @@ def get_stroke_count(char):
     strokes = component_map.get(char, {}).get("meta", {}).get("strokes", None)
     if isinstance(strokes, (int, float)) and strokes > 0:
         return int(strokes)
-    # Debug invalid strokes (uncomment for troubleshooting)
-    # if strokes is not None:
-    #     st.warning(f"Invalid strokes value for char {char}: {strokes} (type: {type(strokes)})")
+    # Debug invalid strokes
+    if strokes is not None and strokes != '':
+        with st.expander("Debug: Invalid Strokes Values"):
+            st.warning(f"Invalid strokes for char '{char}': value={strokes}, type={type(strokes)}")
     return None
 
 # Session state initialization
@@ -209,10 +210,7 @@ def render_controls(component_map):
                 (st.session_state.stroke_count == 0 or get_stroke_count(comp) == st.session_state.stroke_count)
             ]
             sorted_components = sorted(filtered_components, key=lambda c: get_stroke_count(c) or 0)
-            # Debug invalid keys (uncomment for troubleshooting)
-            # invalid_keys = [k for k in component_map if not (isinstance(k, str) and len(k) == 1)]
-            # if invalid_keys:
-            #     st.warning(f"Invalid component_map keys found: {invalid_keys}")
+
             selectbox_index = 0
             if sorted_components:
                 if st.session_state.selected_comp not in sorted_components:
@@ -251,7 +249,13 @@ def render_controls(component_map):
                     format_func=lambda x: "No Filter" if x == 0 else x
                 )
             else:
-                st.warning("No valid stroke counts available. Please check the JSON data.")
+                st.warning("No valid stroke counts available. Using fallback options.")
+                st.selectbox(
+                    "Filter by Strokes:",
+                    options=[0],
+                    key="stroke_count",
+                    format_func=lambda x: "No Filter"
+                )
 
         with col4:
             idcs = {"No Filter"} | {
