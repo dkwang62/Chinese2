@@ -121,9 +121,10 @@ def init_session_state():
         "component_idc": selected_config["component_idc"],
         "output_radical": selected_config["output_radical"],
         "idc_refresh": False,
-        "text_input_comp": selected_config["selected_comp"],
+        "text_input_comp": "",
         "page": 1,
-        "previous_selected_comp": selected_config["selected_comp"]
+        "previous_selected_comp": selected_config["selected_comp"],
+        "text_input_warning": None
     }
     for key, value in defaults.items():
         st.session_state.setdefault(key, value)
@@ -134,35 +135,37 @@ init_session_state()
 def on_text_input_change(component_map):
     text_value = st.session_state.text_input_comp.strip()
     if len(text_value) != 1:
-        st.warning("Please enter exactly one character.")
+        st.session_state.text_input_warning = "Please enter exactly one character."
         return
     if text_value in component_map:
         st.session_state.previous_selected_comp = st.session_state.selected_comp
         st.session_state.selected_comp = text_value
         st.session_state.page = 1
         st.session_state.idc_refresh = not st.session_state.idc_refresh
+        st.session_state.text_input_comp = ""  # Clear input after success
+        st.session_state.text_input_warning = None  # Clear warning
     else:
-        st.warning("Invalid character. Please enter a valid component.")
-        st.session_state.text_input_comp = st.session_state.selected_comp
+        st.session_state.text_input_warning = "Invalid character. Please enter a valid component."
+        st.session_state.text_input_comp = ""
 
 def on_selectbox_change():
     st.session_state.previous_selected_comp = st.session_state.selected_comp
     st.session_state.page = 1
     st.session_state.idc_refresh = not st.session_state.idc_refresh
-    st.session_state.text_input_comp = st.session_state.selected_comp
+    st.session_state.text_input_warning = None  # Clear warning on dropdown change
 
 def on_output_char_select(component_map):
     selected_char = st.session_state.output_char_select
     if selected_char == "Select a character..." or selected_char not in component_map:
         if selected_char != "Select a character...":
-            st.warning("Invalid character selected.")
+            st.session_state.text_input_warning = "Invalid character selected."
         st.session_state.output_char_select = "Select a character..."
         return
     st.session_state.previous_selected_comp = st.session_state.selected_comp
     st.session_state.selected_comp = selected_char
-    st.session_state.text_input_comp = selected_char
     st.session_state.page = 1
     st.session_state.idc_refresh = not st.session_state.idc_refresh
+    st.session_state.text_input_warning = None
 
 def on_reset_filters():
     st.session_state.stroke_count = 0
@@ -172,6 +175,7 @@ def on_reset_filters():
     st.session_state.output_radical = "No Filter"
     st.session_state.page = 1
     st.session_state.idc_refresh = not st.session_state.idc_refresh
+    st.session_state.text_input_warning = None
 
 def is_reset_needed():
     return (
@@ -203,6 +207,7 @@ def render_controls(component_map):
     # Filter row for component input filters
     with st.container():
         st.markdown("### Component Filters")
+        st.caption Eliipsis
         st.caption("Filter components by stroke count, radical, or structure.")
         col1, col2, col3 = st.columns([0.4, 0.4, 0.4])
 
@@ -291,8 +296,8 @@ def render_controls(component_map):
             if sorted_components:
                 if st.session_state.selected_comp not in sorted_components:
                     st.session_state.selected_comp = sorted_components[0]
-                    st.session_state.text_input_comp = sorted_components[0]
-                selectbox_index = sorted_components.index(st.session_state.selected_comp)
+                    st.session_state.text_input_comp = ""
+                selectbox_index = sorted_components.index(st.session_state.selected_comp) if st.session_state.selected_comp in sorted_components else 0
             else:
                 st.session_state.selected_comp = ""
                 st.session_state.text_input_comp = ""
@@ -315,7 +320,15 @@ def render_controls(component_map):
                 )
 
         with col5:
-            st.text_input("Or type:", key="text_input_comp", on_change=on_text_input_change, args=(component_map,))
+            if st.session_state.text_input_warning:
+                st.warning(st.session_state.text_input_warning)
+            st.text_input(
+                "Or type:",
+                key="text_input_comp",
+                on_change=on_text_input_change,
+                args=(component_map,),
+                placeholder="Enter one Chinese character"
+            )
 
     # Output filters and results
     with st.container():
