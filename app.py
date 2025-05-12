@@ -92,7 +92,10 @@ def clean_field(field):
     return field[0] if isinstance(field, list) and field else field or "—"
 
 def get_stroke_count(char):
-    return component_map.get(char, {}).get("meta", {}).get("strokes", -1)
+    strokes = component_map.get(char, {}).get("meta", {}).get("strokes", None)
+    if isinstance(strokes, (int, float)) and strokes > 0:
+        return int(strokes)
+    return None
 
 # Session state initialization
 def init_session_state():
@@ -190,12 +193,15 @@ def render_controls(component_map):
         col1, col2, col3, col4 = st.columns([1.5, 0.2, 0.4, 0.9])
 
         with col1:
-            stroke_counts = sorted(set(get_stroke_count(comp) for comp in component_map if get_stroke_count(comp) != -1))
+            stroke_counts = sorted(set(
+                sc for sc in (get_stroke_count(comp) for comp in component_map)
+                if sc is not None
+            ))
             filtered_components = [
                 comp for comp in component_map
                 if (st.session_state.stroke_count == 0 or get_stroke_count(comp) == st.session_state.stroke_count)
             ]
-            sorted_components = sorted(filtered_components, key=get_stroke_count)
+            sorted_components = sorted(filtered_components, key=lambda c: get_stroke_count(c) or 0)
             # Validate selected_comp and set selectbox index
             selectbox_index = 0
             if sorted_components:
@@ -226,7 +232,15 @@ def render_controls(component_map):
             st.text_input("Or type:", key="text_input_comp", on_change=on_text_input_change, args=(component_map,))
 
         with col3:
-            st.selectbox("Filter by Strokes:", options=[0] + stroke_counts, key="stroke_count", format_func=lambda x: "No Filter" if x == 0 else x)
+            if stroke_counts:
+                st.selectbox(
+                    "Filter by Strokes:",
+                    options=[0] + stroke_counts,
+                    key="stroke_count",
+                    format_func=lambda x: "No Filter" if x == 0 else x
+                )
+            else:
+                st.warning("No valid stroke counts available. Please check the JSON data.")
 
         with col4:
             idcs = {"No Filter"} | {
@@ -259,7 +273,7 @@ def render_char_card(char, compounds):
         "Definition": clean_field(meta.get("definition", "No definition available")),
         "Radical": clean_field(meta.get("radical", "—")),
         "Hint": clean_field(meta.get("etymology", {}).get("hint", "No hint available")),
-        "Strokes": f"{get_stroke_count(char)} strokes" if get_stroke_count(char) != -1 else "unknown strokes",
+        "Strokes": f"{get_stroke_count(char)} strokes" if get_stroke_count(char) is not None else "unknown strokes",
         "IDC": clean_field(meta.get("IDC", "—"))
     }
     details = " ".join(f"<strong>{k}:</strong> {v}" for k, v in fields.items())
@@ -288,7 +302,7 @@ def main():
         "Definition": clean_field(meta.get("definition", "No definition available")),
         "Radical": clean_field(meta.get("radical", "—")),
         "Hint": clean_field(meta.get("etymology", {}).get("hint", "No hint available")),
-        "Strokes": f"{get_stroke_count(st.session_state.selected_comp)} strokes" if get_stroke_count(st.session_state.selected_comp) != -1 else "unknown strokes",
+        "Strokes": f"{get_stroke_count(st.session_state.selected_comp)} strokes" if get_stroke_count(st.session_state.selected_comp) is not None else "unknown strokes",
         "IDC": clean_field(meta.get("IDC", "—"))
     }
     details = " ".join(f"<strong>{k}:</strong> {v}" for k, v in fields.items())
@@ -311,7 +325,7 @@ def main():
     filtered_chars = [c for c in filtered_chars if st.session_state.display_mode == "Single Character" or char_compounds[c]]
 
     if filtered_chars:
-        options = ["Select a character..."] + sorted(filtered_chars, key=get_stroke_count)
+        options = ["Select a character..."] + sorted(filtered_chars, key=lambda c: get_stroke_count(c) or 0)
         if (st.session_state.previous_selected_comp and
                 st.session_state.previous_selected_comp != st.session_state.selected_comp and
                 st.session_state.previous_selected_comp not in filtered_chars and
@@ -331,7 +345,7 @@ def main():
         )
 
     st.markdown(f"<h2 class='results-header'>🧬 Results for {st.session_state.selected_comp} — {len(filtered_chars)} result(s)</h2>", unsafe_allow_html=True)
-    for char in sorted(filtered_chars, key=get_stroke_count):
+    for char in sorted(filtered_chars, key=lambda c: get_stroke_count(c) or 0):
         render_char_card(char, char_compounds.get(char, []))
 
     if filtered_chars and st.session_state.display_mode != "Single Character":
