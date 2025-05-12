@@ -145,6 +145,7 @@ def process_text_input(component_map):
 
         if len(text_value) != 1:
             st.session_state.text_input_warning = "Please enter exactly one character."
+            st.session_state.text_input_comp = ""
             return
         if text_value in component_map:
             st.session_state.previous_selected_comp = st.session_state.selected_comp
@@ -156,9 +157,11 @@ def process_text_input(component_map):
             st.session_state.debug_info += "; Valid input processed"
         else:
             st.session_state.text_input_warning = "Invalid character. Please enter a valid component."
+            st.session_state.text_input_comp = ""
             st.session_state.debug_info += "; Invalid input"
     except Exception as e:
         st.session_state.text_input_warning = f"Error processing input: {str(e)}"
+        st.session_state.text_input_comp = ""
         st.session_state.debug_info += f"; Error: {str(e)}"
 
 def on_selectbox_change():
@@ -356,7 +359,9 @@ def render_controls(component_map):
                 const input = document.querySelector('input[data-testid="stTextInput"]');
                 input.value = text;
                 input.dispatchEvent(new Event('input', { bubbles: true }));
-                input.dispatchEvent(new Event('change', { bubbles: true }));
+                setTimeout(() => {
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                }, 100);
             });
         </script>
     """, height=0)
