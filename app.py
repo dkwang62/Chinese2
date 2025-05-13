@@ -104,12 +104,12 @@ def get_stroke_count(char):
 # Session state initialization
 def init_session_state():
     config_options = [
-        {"selected_comp": "爫", "stroke_count": 4, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "No Filter", "output_radical": "No Filter", "display_mode": "Single Character"},
-        {"selected_comp": "心", "stroke_count": 4, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "⿱", "output_radical": "No Filter", "display_mode": "2-Character Phrases"},
-        {"selected_comp": "⺌", "stroke_count": 3, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "No Filter", "output_radical": "No Filter", "display_mode": "3-Character Phrases"},
-        {"selected_comp": "㐱", "stroke_count": 5, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "No Filter", "output_radical": "No Filter", "display_mode": "Single Character"},
-        {"selected_comp": "覀", "stroke_count": 6, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "No Filter", "output_radical": "No Filter", "display_mode": "2-Character Phrases"},
-        {"selected_comp": "豕", "stroke_count": 7, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "⿰", "output_radical": "No Filter", "display_mode": "3-Character Phrases"}
+        {"selected_comp": "爫", "stroke_count": 0, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "No Filter", "output_radical": "No Filter", "display_mode": "Single Character"},
+        {"selected_comp": "心", "stroke_count": 0, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "⿱", "output_radical": "No Filter", "display_mode": "2-Character Phrases"},
+        {"selected_comp": "⺌", "stroke_count": 0, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "No Filter", "output_radical": "No Filter", "display_mode": "3-Character Phrases"},
+        {"selected_comp": "㐱", "stroke_count": 0, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "No Filter", "output_radical": "No Filter", "display_mode": "Single Character"},
+        {"selected_comp": "覀", "stroke_count": 0, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "No Filter", "output_radical": "No Filter", "display_mode": "2-Character Phrases"},
+        {"selected_comp": "豕", "stroke_count": 0, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "⿰", "output_radical": "No Filter", "display_mode": "3-Character Phrases"}
     ]
     selected_config = random.choice(config_options)
     defaults = {
@@ -138,15 +138,12 @@ def process_text_input(component_map):
         text_value = st.session_state.text_input_comp.strip()
         st.session_state.debug_info = f"Input received: '{text_value}'"
         
-        # Avoid re-processing the same input
         if text_value == st.session_state.last_processed_input:
             st.session_state.debug_info += "; Input already processed, skipping"
             return
         
-        if "木" in component_map:
-            st.session_state.debug_info += "; '木' is in component_map"
-        else:
-            st.session_state.debug_info += "; '木' is NOT in component_map"
+        radicals = {c for c in component_map if component_map.get(c, {}).get("meta", {}).get("radical", "") == c}
+        st.session_state.debug_info += f"; {len(radicals)} radicals in component_map"
 
         if len(text_value) != 1:
             st.session_state.text_input_warning = "Please enter exactly one character."
@@ -160,8 +157,6 @@ def process_text_input(component_map):
             st.session_state.selected_comp = text_value
             st.session_state.page = 1
             st.session_state.text_input_warning = None
-            st.session_state.debug_info += "; Valid input processed"
-            # Check if the new component matches current filters
             filtered_components = [
                 comp for comp in component_map
                 if isinstance(comp, str) and len(comp) == 1 and
@@ -174,9 +169,7 @@ def process_text_input(component_map):
                 st.session_state.stroke_count = 0
                 st.session_state.radical = "No Filter"
                 st.session_state.component_idc = "No Filter"
-            else:
-                st.session_state.debug_info += f"; '{text_value}' matches current filters"
-            st.session_state.text_input_comp = text_value  # Retain the typed character
+            st.session_state.text_input_comp = text_value
             st.session_state.last_processed_input = text_value
         else:
             st.session_state.text_input_warning = "Invalid character. Please enter a valid component."
@@ -193,7 +186,7 @@ def on_selectbox_change():
     st.session_state.previous_selected_comp = st.session_state.selected_comp
     st.session_state.page = 1
     st.session_state.text_input_warning = None
-    st.session_state.text_input_comp = st.session_state.selected_comp  # Sync input with selected component
+    st.session_state.text_input_comp = st.session_state.selected_comp
 
 def on_output_char_select(component_map):
     selected_char = st.session_state.output_char_select
@@ -206,7 +199,7 @@ def on_output_char_select(component_map):
     st.session_state.selected_comp = selected_char
     st.session_state.page = 1
     st.session_state.text_input_warning = None
-    st.session_state.text_input_comp = selected_char  # Sync input with selected character
+    st.session_state.text_input_comp = selected_char
 
 def on_reset_filters():
     st.session_state.stroke_count = 0
@@ -246,6 +239,8 @@ def render_controls(component_map):
     }
 
     # Debug output
+    radicals = {c for c in component_map if component_map.get(c, {}).get("meta", {}).get("radical", "") == c}
+    st.write(f"Debug: {len(component_map)} components, {len(radicals)} radicals in component_map")
     with st.expander("Debug Info"):
         st.write(f"Current text_input_comp: '{st.session_state.text_input_comp}'")
         st.write(f"Current selected_comp: '{st.session_state.selected_comp}'")
@@ -342,30 +337,33 @@ def render_controls(component_map):
                 (st.session_state.component_idc == "No Filter" or component_map.get(comp, {}).get("meta", {}).get("IDC", "") == st.session_state.component_idc)
             ]
             sorted_components = sorted(filtered_components, key=lambda c: get_stroke_count(c) or 0)
+            st.write(f"Debug: {len(filtered_components)} components after filters")
             
             if not sorted_components:
+                st.session_state.selected_comp = ""
                 st.session_state.text_input_comp = ""
-                st.warning("No valid components available. Please adjust the stroke count, radical, or IDC filter or check the JSON data.")
-            elif st.session_state.selected_comp not in sorted_components:
+                st.warning("No components match the current filters. Please adjust the stroke count, radical, or IDC filters.")
+                return
+            if st.session_state.selected_comp not in sorted_components:
                 st.session_state.selected_comp = sorted_components[0]
                 st.session_state.text_input_comp = sorted_components[0]
+                st.session_state.debug_info += f"; Reset selected_comp to '{sorted_components[0]}' due to filters"
 
-            if sorted_components:
-                index = sorted_components.index(st.session_state.selected_comp) if st.session_state.selected_comp in sorted_components else 0
-                st.selectbox(
-                    "Select a component:",
-                    options=sorted_components,
-                    index=index,
-                    format_func=lambda c: (
-                        f"{c} ({clean_field(component_map.get(c, {}).get('meta', {}).get('pinyin', '—'))}, "
-                        f"{clean_field(component_map.get(c, {}).get('meta', {}).get('IDC', '—'))}, "
-                        f"Radical: {clean_field(component_map.get(c, {}).get('meta', {}).get('radical', '—'))}, "
-                        f"{get_stroke_count(c) or 'unknown'} strokes, "
-                        f"{clean_field(component_map.get(c, {}).get('meta', {}).get('definition', 'No definition available'))})"
-                    ),
-                    key="selected_comp",
-                    on_change=on_selectbox_change
-                )
+            index = sorted_components.index(st.session_state.selected_comp) if st.session_state.selected_comp in sorted_components else 0
+            st.selectbox(
+                "Select a component:",
+                options=sorted_components,
+                index=index,
+                format_func=lambda c: (
+                    f"{c} ({clean_field(component_map.get(c, {}).get('meta', {}).get('pinyin', '—'))}, "
+                    f"{clean_field(component_map.get(c, {}).get('meta', {}).get('IDC', '—'))}, "
+                    f"Radical: {clean_field(component_map.get(c, {}).get('meta', {}).get('radical', '—'))}, "
+                    f"{get_stroke_count(c) or 'unknown'} strokes, "
+                    f"{clean_field(component_map.get(c, {}).get('meta', {}).get('definition', 'No definition available'))})"
+                ),
+                key="selected_comp",
+                on_change=on_selectbox_change
+            )
 
         with col5:
             if st.session_state.text_input_warning:
@@ -439,11 +437,15 @@ def render_controls(component_map):
 # Render character card
 def render_char_card(char, compounds):
     meta = component_map.get(char, {}).get("meta", {})
+    etymology = meta.get("etymology", {})
+    etymology_text = clean_field(etymology.get("hint", "No hint available"))
+    if etymology.get("details"):
+        etymology_text += f"; Details: {clean_field(etymology.get('details'))}"
     fields = {
         "Pinyin": clean_field(meta.get("pinyin", "—")),
         "Definition": clean_field(meta.get("definition", "No definition available")),
         "Radical": clean_field(meta.get("radical", "—")),
-        "Hint": clean_field(meta.get("etymology", {}).get("hint", "No hint available")),
+        "Etymology": etymology_text,
         "Strokes": f"{get_stroke_count(char)} strokes" if get_stroke_count(char) is not None else "unknown strokes",
         "IDC": clean_field(meta.get("IDC", "—"))
     }
@@ -468,11 +470,15 @@ def main():
         return
 
     meta = component_map.get(st.session_state.selected_comp, {}).get("meta", {})
+    etymology = meta.get("etymology", {})
+    etymology_text = clean_field(etymology.get("hint", "No hint available"))
+    if etymology.get("details"):
+        etymology_text += f"; Details: {clean_field(etymology.get('details'))}"
     fields = {
         "Pinyin": clean_field(meta.get("pinyin", "—")),
         "Definition": clean_field(meta.get("definition", "No definition available")),
         "Radical": clean_field(meta.get("radical", "—")),
-        "Hint": clean_field(meta.get("etymology", {}).get("hint", "No hint available")),
+        "Etymology": etymology_text,
         "Strokes": f"{get_stroke_count(st.session_state.selected_comp)} strokes" if get_stroke_count(st.session_state.selected_comp) is not None else "unknown strokes"
     }
     details = " ".join(f"<strong>{k}:</strong> {v}" for k, v in fields.items())
