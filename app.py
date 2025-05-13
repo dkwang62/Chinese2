@@ -78,12 +78,12 @@ st.markdown("""
 # Initialize session state
 def init_session_state():
     config_options = [
-        {"selected_comp": "爫", "stroke_count": 0, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "No Filter", "output_radical": "No Filter", "display_mode": "Single Character"},
-        {"selected_comp": "心", "stroke_count": 0, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "⿱", "output_radical": "No Filter", "display_mode": "2-Character Phrases"},
-        {"selected_comp": "⺌", "stroke_count": 0, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "No Filter", "output_radical": "No Filter", "display_mode": "3-Character Phrases"},
-        {"selected_comp": "㐱", "stroke_count": 0, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "No Filter", "output_radical": "No Filter", "display_mode": "Single Character"},
-        {"selected_comp": "覀", "stroke_count": 0, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "No Filter", "output_radical": "No Filter", "display_mode": "2-Character Phrases"},
-        {"selected_comp": "豕", "stroke_count": 0, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "⿰", "output_radical": "No Filter", "display_mode": "3-Character Phrases"}
+        {"selected_comp": "爫", "stroke_count": 4, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "No Filter", "output_radical": "No Filter", "display_mode": "Single Character"},
+        {"selected_comp": "心", "stroke_count": 4, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "⿱", "output_radical": "No Filter", "display_mode": "2-Character Phrases"},
+        {"selected_comp": "⺌", "stroke_count": 3, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "No Filter", "output_radical": "No Filter", "display_mode": "3-Character Phrases"},
+        {"selected_comp": "㐱", "stroke_count": 5, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "No Filter", "output_radical": "No Filter", "display_mode": "Single Character"},
+        {"selected_comp": "覀", "stroke_count": 6, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "No Filter", "output_radical": "No Filter", "display_mode": "2-Character Phrases"},
+        {"selected_comp": "豕", "stroke_count": 7, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "⿰", "output_radical": "No Filter", "display_mode": "3-Character Phrases"}
     ]
     selected_config = random.choice(config_options)
     defaults = {
@@ -110,13 +110,7 @@ def load_char_decomp():
     try:
         with open("enhanced_component_map_with_etymology.json", "r", encoding="utf-8") as f:
             data = json.load(f)
-            if isinstance(data, list):
-                char_decomp = {entry["character"]: entry for entry in data}
-                component_map = None
-            else:
-                char_decomp = data.get("characters", {})
-                component_map = data.get("component_map", None)
-            return char_decomp, component_map
+            return data.get("characters", {}), data.get("component_map", None)
     except Exception as e:
         st.error(f"Failed to load enhanced_component_map_with_etymology.json: {e}")
         return {}, None
@@ -150,7 +144,6 @@ def get_all_components(char, max_depth, depth=0, seen=None):
 @st.cache_data
 def build_component_map(max_depth=5):
     component_map = defaultdict(list)
-    radicals = {char for char in char_decomp if char_decomp[char].get("radical", "") == char}
     for char in char_decomp:
         components = {char}
         decomposition = char_decomp.get(char, {}).get("decomposition", "")
@@ -160,9 +153,6 @@ def build_component_map(max_depth=5):
                 components.update(get_all_components(comp, max_depth))
         for comp in components:
             component_map[comp].append(char)
-    for radical in radicals:
-        if radical not in component_map:
-            component_map[radical] = [radical]
     return component_map
 
 def get_component_map():
@@ -246,9 +236,8 @@ def render_controls(component_map):
         "⿻": "Overlaid"
     }
 
-    # Debug: Display component and radical counts
-    radicals = {char for char in component_map if char_decomp.get(char, {}).get("radical", "") == char}
-    st.write(f"Debug: {len(component_map)} components, {len(radicals)} radicals in component_map")
+    # Debug: Display number of components with radicals and input state
+    st.write(f"Debug: {len([comp for comp in component_map if char_decomp.get(comp, {}).get('radical', '')])} components have a radical")
     with st.expander("Debug Info"):
         st.write(f"Current text_input_comp: '{st.session_state.get('text_input_comp', '')}'")
         st.write(f"Current selected_comp: '{st.session_state.get('selected_comp', '')}'")
@@ -320,12 +309,13 @@ def render_controls(component_map):
                 if (st.session_state.stroke_count == 0 or get_stroke_count(comp) == st.session_state.stroke_count) and
                 (st.session_state.radical == "No Filter" or char_decomp.get(comp, {}).get("radical", "") == st.session_state.radical) and
                 (st.session_state.component_idc == "No Filter" or
-                 char_decomp.get(comp, {}).get("decomposition", "").startswith(st.session_state.component_idc))
+                 char_decomp.get(comp, {}).get("decomposition", "").startswith(st.session_state.component_idc)) and
+                get_stroke_count(comp) > 1
             ]
             sorted_components = sorted(filtered_components, key=get_stroke_count)
-            st.write(f"Debug: {len(filtered_components)} components after filters")
             selectbox_index = 0
             if sorted_components:
+                # Only reset if selected_comp is invalid, no typed input exists, and component_map doesn't have the current selected_comp
                 if (st.session_state.selected_comp not in sorted_components and
                     (not st.session_state.text_input_comp or
                      st.session_state.text_input_comp == st.session_state.selected_comp) and
@@ -338,21 +328,21 @@ def render_controls(component_map):
                 st.session_state.selected_comp = ""
                 st.session_state.text_input_comp = ""
                 st.warning("No components match the current filters. Please adjust the stroke count, radical, or IDC filters.")
-                return
 
-            st.selectbox(
-                "Select a component:",
-                options=sorted_components,
-                index=selectbox_index,
-                format_func=lambda c: (
-                    f"{c} ({clean_field(char_decomp.get(c, {}).get('pinyin', '—'))}, "
-                    f"{char_decomp.get(c, {}).get('decomposition', '—')[0] if char_decomp.get(c, {}).get('decomposition', '') and char_decomp.get(c, {}).get('decomposition', '')[0] in IDC_CHARS else '—'}, "
-                    f"Radical: {clean_field(char_decomp.get(c, {}).get('radical', '—'))}, "
-                    f"{get_stroke_count(c)} strokes, {clean_field(char_decomp.get(c, {}).get('definition', 'No definition available'))})"
-                ),
-                key="selected_comp",
-                on_change=on_selectbox_change
-            )
+            if sorted_components:
+                st.selectbox(
+                    "Select a component:",
+                    options=sorted_components,
+                    index=selectbox_index,
+                    format_func=lambda c: (
+                        f"{c} ({clean_field(char_decomp.get(c, {}).get('pinyin', '—'))}, "
+                        f"{char_decomp.get(c, {}).get('decomposition', '—')[0] if char_decomp.get(c, {}).get('decomposition', '') and char_decomp.get(c, {}).get('decomposition', '')[0] in IDC_CHARS else '—'}, "
+                        f"Radical: {clean_field(char_decomp.get(c, {}).get('radical', '—'))}, "
+                        f"{get_stroke_count(c)} strokes, {clean_field(char_decomp.get(c, {}).get('definition', 'No definition available'))})"
+                    ),
+                    key="selected_comp",
+                    on_change=on_selectbox_change
+                )
 
         with col5:
             st.text_input(
