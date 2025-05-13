@@ -124,7 +124,8 @@ def init_session_state():
         "page": 1,
         "previous_selected_comp": selected_config["selected_comp"],
         "text_input_warning": None,
-        "debug_info": ""
+        "debug_info": "",
+        "last_processed_input": ""
     }
     for key, value in defaults.items():
         st.session_state.setdefault(key, value)
@@ -137,6 +138,11 @@ def process_text_input(component_map):
         text_value = st.session_state.text_input_comp.strip()
         st.session_state.debug_info = f"Input received: '{text_value}'"
         
+        # Avoid re-processing the same input
+        if text_value == st.session_state.last_processed_input:
+            st.session_state.debug_info += "; Input already processed, skipping"
+            return
+        
         if "木" in component_map:
             st.session_state.debug_info += "; '木' is in component_map"
         else:
@@ -146,6 +152,7 @@ def process_text_input(component_map):
             st.session_state.text_input_warning = "Please enter exactly one character."
             st.session_state.debug_info += "; Invalid length"
             st.session_state.text_input_comp = ""
+            st.session_state.last_processed_input = text_value
             return
         if text_value in component_map:
             st.session_state.debug_info += f"; Component '{text_value}' is valid"
@@ -169,21 +176,24 @@ def process_text_input(component_map):
                 st.session_state.component_idc = "No Filter"
             else:
                 st.session_state.debug_info += f"; '{text_value}' matches current filters"
-            st.session_state.text_input_comp = ""  # Clear input after processing
+            st.session_state.text_input_comp = text_value  # Retain the typed character
+            st.session_state.last_processed_input = text_value
         else:
             st.session_state.text_input_warning = "Invalid character. Please enter a valid component."
             st.session_state.debug_info += f"; Invalid component '{text_value}'"
             st.session_state.text_input_comp = ""
+            st.session_state.last_processed_input = text_value
     except Exception as e:
         st.session_state.text_input_warning = f"Error processing input: {str(e)}"
         st.session_state.debug_info += f"; Error: {str(e)}"
         st.session_state.text_input_comp = ""
+        st.session_state.last_processed_input = text_value
 
 def on_selectbox_change():
     st.session_state.previous_selected_comp = st.session_state.selected_comp
     st.session_state.page = 1
     st.session_state.text_input_warning = None
-    st.session_state.text_input_comp = ""
+    st.session_state.text_input_comp = st.session_state.selected_comp  # Sync input with selected component
 
 def on_output_char_select(component_map):
     selected_char = st.session_state.output_char_select
@@ -196,7 +206,7 @@ def on_output_char_select(component_map):
     st.session_state.selected_comp = selected_char
     st.session_state.page = 1
     st.session_state.text_input_warning = None
-    st.session_state.text_input_comp = ""
+    st.session_state.text_input_comp = selected_char  # Sync input with selected character
 
 def on_reset_filters():
     st.session_state.stroke_count = 0
@@ -285,7 +295,6 @@ def render_controls(component_map):
                 if isinstance(c, str) and len(c) == 1 and component_map.get(c, {}).get("meta", {}).get("radical", "")
             }
             radical_options = ["No Filter"] + sorted(radicals - {"No Filter"})
-            # Validate current radical selection
             if st.session_state.radical not in radical_options:
                 st.session_state.radical = "No Filter"
             st.selectbox(
@@ -308,7 +317,6 @@ def render_controls(component_map):
                 if isinstance(c, str) and len(c) == 1 and component_map.get(c, {}).get("meta", {}).get("IDC", "")
             }
             component_idc_options = ["No Filter"] + sorted(component_idcs - {"No Filter"})
-            # Validate current IDC selection
             if st.session_state.component_idc not in component_idc_options:
                 st.session_state.component_idc = "No Filter"
             st.selectbox(
@@ -340,7 +348,7 @@ def render_controls(component_map):
                 st.warning("No valid components available. Please adjust the stroke count, radical, or IDC filter or check the JSON data.")
             elif st.session_state.selected_comp not in sorted_components:
                 st.session_state.selected_comp = sorted_components[0]
-                st.session_state.text_input_comp = ""
+                st.session_state.text_input_comp = sorted_components[0]
 
             if sorted_components:
                 index = sorted_components.index(st.session_state.selected_comp) if st.session_state.selected_comp in sorted_components else 0
