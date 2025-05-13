@@ -447,7 +447,7 @@ def render_char_card(char, compounds):
     meta = component_map.get(char, {}).get("meta", {})
     fields = {
         "Pinyin": clean_field(meta.get("pinyin", "—")),
-        "Strokes":bod f"{get_stroke_count(char)} strokes" if get_stroke_count(char) is not None else "unknown strokes",
+        "Strokes": f"{get_stroke_count(char)} strokes" if get_stroke_count(char) is not None else "unknown strokes",
         "Radical": clean_field(meta.get("radical", "—")),
         "IDC": clean_field(meta.get("IDC", "—")),
         "Definition": clean_field(meta.get("definition", "No definition available")),
