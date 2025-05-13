@@ -101,6 +101,12 @@ def get_stroke_count(char):
         pass
     return None
 
+def get_etymology_text(meta):
+    etymology = meta.get("etymology", {})
+    hint = clean_field(etymology.get("hint", "No hint available"))
+    details = clean_field(etymology.get("details", ""))
+    return f"{hint}{'; Details: ' + details if details and details != '—' else ''}"
+
 # Session state initialization
 def init_session_state():
     config_options = [
@@ -355,11 +361,13 @@ def render_controls(component_map):
                 options=sorted_components,
                 index=index,
                 format_func=lambda c: (
-                    f"{c} ({clean_field(component_map.get(c, {}).get('meta', {}).get('pinyin', '—'))}, "
-                    f"{clean_field(component_map.get(c, {}).get('meta', {}).get('IDC', '—'))}, "
+                    c if c == "Select a component..." else
+                    f"{c} (Pinyin: {clean_field(component_map.get(c, {}).get('meta', {}).get('pinyin', '—'))}, "
+                    f"Strokes: {get_stroke_count(c) or 'unknown'}, "
                     f"Radical: {clean_field(component_map.get(c, {}).get('meta', {}).get('radical', '—'))}, "
-                    f"{get_stroke_count(c) or 'unknown'} strokes, "
-                    f"{clean_field(component_map.get(c, {}).get('meta', {}).get('definition', 'No definition available'))})"
+                    f"IDC: {clean_field(component_map.get(c, {}).get('meta', {}).get('IDC', '—'))}, "
+                    f"Definition: {clean_field(component_map.get(c, {}).get('meta', {}).get('definition', 'No definition available'))}, "
+                    f"Etymology: {get_etymology_text(component_map.get(c, {}).get('meta', {}))})"
                 ),
                 key="selected_comp",
                 on_change=on_selectbox_change
@@ -437,17 +445,13 @@ def render_controls(component_map):
 # Render character card
 def render_char_card(char, compounds):
     meta = component_map.get(char, {}).get("meta", {})
-    etymology = meta.get("etymology", {})
-    etymology_text = clean_field(etymology.get("hint", "No hint available"))
-    if etymology.get("details"):
-        etymology_text += f"; Details: {clean_field(etymology.get('details'))}"
     fields = {
         "Pinyin": clean_field(meta.get("pinyin", "—")),
-        "Definition": clean_field(meta.get("definition", "No definition available")),
+        "Strokes":bod f"{get_stroke_count(char)} strokes" if get_stroke_count(char) is not None else "unknown strokes",
         "Radical": clean_field(meta.get("radical", "—")),
-        "Etymology": etymology_text,
-        "Strokes": f"{get_stroke_count(char)} strokes" if get_stroke_count(char) is not None else "unknown strokes",
-        "IDC": clean_field(meta.get("IDC", "—"))
+        "IDC": clean_field(meta.get("IDC", "—")),
+        "Definition": clean_field(meta.get("definition", "No definition available")),
+        "Etymology": get_etymology_text(meta)
     }
     details = " ".join(f"<strong>{k}:</strong> {v}" for k, v in fields.items())
     st.markdown(f"""<div class='char-card'><h3 class='char-title'>{char}</h3><p class='details'>{details}</p>""", unsafe_allow_html=True)
@@ -470,16 +474,13 @@ def main():
         return
 
     meta = component_map.get(st.session_state.selected_comp, {}).get("meta", {})
-    etymology = meta.get("etymology", {})
-    etymology_text = clean_field(etymology.get("hint", "No hint available"))
-    if etymology.get("details"):
-        etymology_text += f"; Details: {clean_field(etymology.get('details'))}"
     fields = {
         "Pinyin": clean_field(meta.get("pinyin", "—")),
-        "Definition": clean_field(meta.get("definition", "No definition available")),
+        "Strokes": f"{get_stroke_count(st.session_state.selected_comp)} strokes" if get_stroke_count(st.session_state.selected_comp) is not None else "unknown strokes",
         "Radical": clean_field(meta.get("radical", "—")),
-        "Etymology": etymology_text,
-        "Strokes": f"{get_stroke_count(st.session_state.selected_comp)} strokes" if get_stroke_count(st.session_state.selected_comp) is not None else "unknown strokes"
+        "IDC": clean_field(meta.get("IDC", "—")),
+        "Definition": clean_field(meta.get("definition", "No definition available")),
+        "Etymology": get_etymology_text(meta)
     }
     details = " ".join(f"<strong>{k}:</strong> {v}" for k, v in fields.items())
     st.markdown(f"""<div class='selected-card'><h2 class='selected-char'>{st.session_state.selected_comp}</h2><p class='details'>{details}</p></div>""", unsafe_allow_html=True)
@@ -516,9 +517,12 @@ def main():
             args=(component_map,),
             format_func=lambda c: (
                 c if c == "Select a character..." else
-                f"{c} ({clean_field(component_map.get(c, {}).get('meta', {}).get('pinyin', '—'))}, "
-                f"{get_stroke_count(c) or 'unknown'} strokes, "
-                f"{clean_field(component_map.get(c, {}).get('meta', {}).get('definition', 'No definition available'))})"
+                f"{c} (Pinyin: {clean_field(component_map.get(c, {}).get('meta', {}).get('pinyin', '—'))}, "
+                f"Strokes: {get_stroke_count(c) or 'unknown'}, "
+                f"Radical: {clean_field(component_map.get(c, {}).get('meta', {}).get('radical', '—'))}, "
+                f"IDC: {clean_field(component_map.get(c, {}).get('meta', {}).get('IDC', '—'))}, "
+                f"Definition: {clean_field(component_map.get(c, {}).get('meta', {}).get('definition', 'No definition available'))}, "
+                f"Etymology: {get_etymology_text(component_map.get(c, {}).get('meta', {}))})"
             )
         )
 
