@@ -62,6 +62,12 @@ st.markdown("""
     .stButton button:hover {
         background-color: #2980b9;
     }
+    .debug-section {
+        background-color: #f5f5f5;
+        padding: 10px;
+        border-radius: 5px;
+        margin-top: 20px;
+    }
     @media (max-width: 768px) {
         .selected-card { flex-direction: column; align-items: flex-start; padding: 10px; }
         .selected-char { font-size: 2em; }
@@ -244,17 +250,6 @@ def render_controls(component_map):
         "⿻": "Overlaid"
     }
 
-    # Debug output
-    radicals = {c for c in component_map if component_map.get(c, {}).get("meta", {}).get("radical", "") == c}
-    st.write(f"Debug: {len(component_map)} components, {len(radicals)} radicals in component_map")
-    with st.expander("Debug Info"):
-        st.write(f"Current text_input_comp: '{st.session_state.text_input_comp}'")
-        st.write(f"Current selected_comp: '{st.session_state.selected_comp}'")
-        st.write(f"Current stroke_count: {st.session_state.stroke_count}")
-        st.write(f"Current radical: {st.session_state.radical}")
-        st.write(f"Current component_idc: {st.session_state.component_idc}")
-        st.write(st.session_state.debug_info)
-
     # Filter row for component input filters
     with st.container():
         st.markdown("### Component Filters")
@@ -343,7 +338,6 @@ def render_controls(component_map):
                 (st.session_state.component_idc == "No Filter" or component_map.get(comp, {}).get("meta", {}).get("IDC", "") == st.session_state.component_idc)
             ]
             sorted_components = sorted(filtered_components, key=lambda c: get_stroke_count(c) or 0)
-            st.write(f"Debug: {len(filtered_components)} components after filters")
             
             if not sorted_components:
                 st.session_state.selected_comp = ""
@@ -548,6 +542,19 @@ def main():
                 document.execCommand("copy");
                 </script>
             """, height=0)
+
+    # Render debug information at the end
+    radicals = {c for c in component_map if component_map.get(c, {}).get("meta", {}).get("radical", "") == c}
+    with st.expander("Debug Information (For Developers)", expanded=False):
+        st.markdown("<div class='debug-section'>", unsafe_allow_html=True)
+        st.write(f"Total components: {len(component_map)}, Radicals: {len(radicals)}")
+        st.write(f"Current text_input_comp: '{st.session_state.text_input_comp}'")
+        st.write(f"Current selected_comp: '{st.session_state.selected_comp}'")
+        st.write(f"Current stroke_count: {st.session_state.stroke_count}")
+        st.write(f"Current radical: {st.session_state.radical}")
+        st.write(f"Current component_idc: {st.session_state.component_idc}")
+        st.write(f"Debug log: {st.session_state.debug_info}")
+        st.markdown("</div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
