@@ -1,3 +1,4 @@
+# works with enhanced_component_map_with_etymology.json
 import json
 import random
 import streamlit as st
