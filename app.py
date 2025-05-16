@@ -616,6 +616,8 @@ def render_output_controls(component_map):
 
     if st.session_state.selected_comp and st.session_state.selected_comp in component_map:
         related = component_map.get(st.session_state.selected_comp, {}).get("related_characters", [])
+        if not related:
+            st.warning("No related characters found for the selected input component. Please check the JSON data or select a different component.")
         filtered_chars = [
             c for c in related
             if isinstance(c, str) and len(c) == 1 and c != '?' and
@@ -631,29 +633,23 @@ def render_output_controls(component_map):
         }
         filtered_chars = [c for c in filtered_chars if st.session_state.display_mode == "Single Character" or char_compounds[c]]
 
-        if filtered_chars:
-            output_options = sorted([c for c in filtered_chars if c != '?'], key=lambda c: get_stroke_count(c) or 0)
-            options = ["Select a character..."] + output_options
-            index = options.index(st.session_state.output_char_select) if st.session_state.get('output_char_select') in options else 0
-            st.selectbox(
-                "Select a character from the list below:",
-                options=options,
-                index=index,
-                key="output_char_select",
-                on_change=on_output_char_select,
-                args=(component_map,),
-                format_func=lambda c: (
-                    c if c == "Select a character..." else
-                    f"{c} (Pinyin: {clean_field(component_map.get(c, {}).get('meta', {}).get('pinyin', '—'))}, "
-                    f"Strokes: {get_stroke_count(c) or 'unknown'}, "
-                    f"Radical: {clean_field(component_map.get(c, {}).get('meta', {}).get('radical', '—'))}, "
-                    f"Decomposition: {format_decomposition(c)}, "
-                    f"Definition: {clean_field(component_map.get(c, {}).get('meta', {}).get('definition', 'No definition available'))}, "
-                    f"Etymology: {get_etymology_text(component_map.get(c, {}).get('meta', {}))})"
-                )
+        st.selectbox(
+            "Select a character from the list below:",
+            options=["Select a character..."] + (sorted([c for c in filtered_chars if c != '?'], key=lambda c: get_stroke_count(c) or 0) if filtered_chars else []),
+            index=0,
+            key="output_char_select",
+            on_change=on_output_char_select,
+            args=(component_map,),
+            format_func=lambda c: (
+                c if c == "Select a character..." else
+                f"{c} (Pinyin: {clean_field(component_map.get(c, {}).get('meta', {}).get('pinyin', '—'))}, "
+                f"Strokes: {get_stroke_count(c) or 'unknown'}, "
+                f"Radical: {clean_field(component_map.get(c, {}).get('meta', {}).get('radical', '—'))}, "
+                f"Decomposition: {format_decomposition(c)}, "
+                f"Definition: {clean_field(component_map.get(c, {}).get('meta', {}).get('definition', 'No definition available'))}, "
+                f"Etymology: {get_etymology_text(component_map.get(c, {}).get('meta', {}))})"
             )
-        else:
-            st.warning("No related characters found for the selected input component.")
+        )
     else:
         st.warning("Please select a valid input component to enable output selection.")
     st.markdown("</div>", unsafe_allow_html=True)
