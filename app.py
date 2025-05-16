@@ -16,96 +16,90 @@ def apply_dynamic_css():
     <style>
         .selected-card {{
             background-color: #e8f4f8;
-            padding: 5px;
-            border-radius: 10px;
-            margin-bottom: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 2px;
+            border-radius: 8px;
+            margin: 2px 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             display: flex;
             align-items: center;
-            gap: 10px;
-            border-left: 5px solid #3498db;
+            gap: 5px;
+            border-left: 4px solid #3498db;
         }}
-        .selected-char {{ font-size: calc(2.5em * {font_scale}); color: #e74c3c; margin: 0; }}
-        .details {{ font-size: calc(1.5em * {font_scale}); color: #34495e; margin: 0; }}
+        .selected-char {{ font-size: calc(2.2em * {font_scale}); color: #e74c3c; margin: 0; }}
+        .details {{ font-size: calc(1.3em * {font_scale}); color: #34495e; margin: 0; }}
         .details strong {{ color: #2c3e50; }}
-        .results-header {{ font-size: calc(1.5em * {font_scale}); color: #2c3e50; margin: 5px 0; }}
+        .results-header {{ font-size: calc(1.4em * {font_scale}); color: #2c3e50; margin: 2px 0; }}
         .char-card {{
             background-color: #ffffff;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 5px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 5px;
+            border-radius: 6px;
+            margin: 2px 0;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
             transition: transform 0.2s;
         }}
         .char-card:hover {{
-            transform: translateY(-2px);
-            box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }}
-        .char-title {{ font-size: calc(1.4em * {font_scale}); color: #e74c3c; margin: 0; display: inline; }}
+        .char-title {{ font-size: calc(1.3em * {font_scale}); color: #e74c3c; margin: 0; display: inline; }}
         .compounds-section {{
             background-color: #f1f8e9;
-            padding: 5px;
-            border-radius: 5px;
-            margin-top: 5px;
+            padding: 2px;
+            border-radius: 4px;
+            margin: 2px 0;
         }}
-        .compounds-title {{ font-size: calc(1.1em * {font_scale}); color: #558b2f; margin: 0 0 5px; }}
-        .compounds-list {{ font-size: calc(1em * {font_scale}); color: #34495e; margin: 0; }}
-        .stContainer {{
-            padding: 5px;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            margin-bottom: 5px;
-        }}
+        .compounds-title {{ font-size: calc(1.0em * {font_scale}); color: #558b2f; margin: 0 0 2px; }}
+        .compounds-list {{ font-size: calc(0.9em * {font_scale}); color: #34495e; margin: 0; }}
         .input-section {{
             background-color: #e6f3ff;
-            padding: 5px;
-            border-radius: 10px;
-            margin-bottom: 5px;
+            padding: 2px;
+            border-radius: 8px;
+            margin: 2px 0;
             border: 1px solid #b3d4ff;
         }}
         .output-section {{
             background-color: #e6ffe6;
-            padding: 5px;
-            border-radius: 10px;
-            margin-bottom: 5px;
+            padding: 2px;
+            border-radius: 8px;
+            margin: 2px 0;
             border: 1px solid #b3ffb3;
         }}
         .filter-section {{
             background-color: #f8f9fa;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 5px;
+            padding: 5px;
+            border-radius: 6px;
+            margin: 2px 0;
         }}
         .stButton button {{
             background-color: #3498db;
             color: white;
-            border-radius: 5px;
-            font-size: calc(0.9em * {font_scale});
+            border-radius: 4px;
+            font-size: calc(0.8em * {font_scale});
         }}
         .stButton button:hover {{
             background-color: #2980b9;
         }}
         .debug-section {{
             background-color: #f5f5f5;
-            padding: 5px;
-            border-radius: 5px;
-            margin-top: 5px;
+            padding: 2px;
+            border-radius: 4px;
+            margin: 2px 0;
         }}
         .diagnostic-message.error {{ color: #c0392b; }}
         .diagnostic-message.warning {{ color: #e67e22; }}
         .diagnostic-message.info {{ color: #3498db; }}
         .stSelectbox, .stTextInput, .stRadio, .stSlider {{
-            font-size: calc(0.9em * {font_scale});
+            font-size: calc(0.8em * {font_scale});
         }}
         @media (max-width: 768px) {{
-            .selected-card {{ flex-direction: column; align-items: flex-start; padding: 5px; }}
-            .selected-char {{ font-size: calc(2em * {font_scale}); }}
-            .details, .compounds-list {{ font-size: calc(0.95em * {font_scale}); line-height: 1.5; }}
-            .results-header {{ font-size: calc(1.3em * {font_scale}); }}
-            .char-card {{ padding: 5px; }}
-            .char-title {{ font-size: calc(1.2em * {font_scale}); }}
-            .compounds-title {{ font-size: calc(1em * {font_scale}); }}
-            .input-section, .output-section, .filter-section {{ padding: 5px; }}
+            .selected-card {{ flex-direction: column; align-items: flex-start; padding: 2px; }}
+            .selected-char {{ font-size: calc(1.8em * {font_scale}); }}
+            .details, .compounds-list {{ font-size: calc(0.9em * {font_scale}); line-height: 1.4; }}
+            .results-header {{ font-size: calc(1.2em * {font_scale}); }}
+            .char-card {{ padding: 2px; }}
+            .char-title {{ font-size: calc(1.1em * {font_scale}); }}
+            .compounds-title {{ font-size: calc(0.9em * {font_scale}); }}
+            .input-section, .output-section, .filter-section {{ padding: 2px; }}
         }}
     </style>
     """
@@ -593,7 +587,7 @@ def render_output_controls(component_map):
                 key="selected_idc"
             )
         else:
-            st.write("Select an input component first.")
+            st.selectbox("Result IDC:", ["No Filter"], key="selected_idc", disabled=True)
 
     with col7:
         if st.session_state.selected_comp and st.session_state.selected_comp in component_map:
@@ -612,7 +606,7 @@ def render_output_controls(component_map):
                 key="output_radical"
             )
         else:
-            st.write("Select an input component first.")
+            st.selectbox("Result Radical:", ["No Filter"], key="output_radical", disabled=True)
 
     with col8:
         st.radio("Output Type:", ["Single Character", "2-Character Phrases", "3-Character Phrases", "4-Character Phrases"], key="display_mode")
@@ -659,7 +653,7 @@ def render_output_controls(component_map):
                 )
             )
         else:
-            st.warning("No related characters match the current output filters.")
+            st.warning("No related characters found for the selected input component.")
     else:
         st.warning("Please select a valid input component to enable output selection.")
     st.markdown("</div>", unsafe_allow_html=True)
@@ -752,7 +746,7 @@ def main():
                 st.caption("Copy this text to get pinyin and meanings for the displayed compounds.")
                 export_text = "Give me the hanyu pinyin and meaning of each compound phrase in one line a phrase in a downloadable word file\n\n"
                 export_text += "\n".join(compound for compound in compounds)
-                st.text_area("Export Text", export_text, height=200, key="export_text")
+                st.text_area("Export Text", export_text, height=150, key="export_text")
                 if st.button("Copy to Clipboard"):
                     st.markdown(f"""
                         <script>
