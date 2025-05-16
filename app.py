@@ -214,24 +214,19 @@ def process_text_input(component_map):
             st.session_state.last_processed_input = text_value
             return
         if text_value in component_map:
-            st.session_state.debug_info += f"; Component '{text_value}' is valid"
+            st.session_state.debug_info += f"; Component '{text_value}' is valid (Text input takes precedence)"
             st.session_state.previous_selected_comp = st.session_state.selected_comp
             st.session_state.selected_comp = text_value
+            st.session_state.text_input_comp = text_value
             st.session_state.page = 1
             st.session_state.text_input_warning = None
-            filtered_components = [
-                comp for comp in component_map
-                if isinstance(comp, str) and len(comp) == 1 and
-                (st.session_state.stroke_count == 0 or get_stroke_count(comp) == st.session_state.stroke_count) and
-                (st.session_state.radical == "No Filter" or component_map.get(comp, {}).get("meta", {}).get("radical", "") == st.session_state.radical) and
-                (st.session_state.component_idc == "No Filter" or component_map.get(comp, {}).get("meta", {}).get("decomposition", "").startswith(st.session_state.component_idc))
-            ]
-            if text_value not in filtered_components:
-                st.session_state.debug_info += f"; '{text_value}' not in filtered components, resetting filters"
-                st.session_state.stroke_count = 0
-                st.session_state.radical = "No Filter"
-                st.session_state.component_idc = "No Filter"
-            st.session_state.text_input_comp = text_value
+            st.session_state.output_char_select = "Select a character..."
+            # Reset all filters to ensure the selected component is not filtered out
+            st.session_state.stroke_count = 0
+            st.session_state.radical = "No Filter"
+            st.session_state.component_idc = "No Filter"
+            st.session_state.selected_idc = "No Filter"
+            st.session_state.output_radical = "No Filter"
             st.session_state.last_processed_input = text_value
         else:
             warning_msg = "Invalid character. Please enter a valid component."
@@ -253,7 +248,14 @@ def on_selectbox_change():
     st.session_state.page = 1
     st.session_state.text_input_warning = None
     st.session_state.text_input_comp = st.session_state.selected_comp
-    st.session_state.debug_info = f"Selectbox changed to '{st.session_state.selected_comp}'"
+    st.session_state.output_char_select = "Select a character..."
+    # Reset all filters to ensure the selected component is not filtered out
+    st.session_state.stroke_count = 0
+    st.session_state.radical = "No Filter"
+    st.session_state.component_idc = "No Filter"
+    st.session_state.selected_idc = "No Filter"
+    st.session_state.output_radical = "No Filter"
+    st.session_state.debug_info = f"Selectbox changed to '{st.session_state.selected_comp}' (Component dropdown takes precedence)"
 
 def on_output_char_select(component_map):
     selected_char = st.session_state.output_char_select
@@ -268,10 +270,13 @@ def on_output_char_select(component_map):
     st.session_state.text_input_comp = selected_char
     st.session_state.page = 1
     st.session_state.text_input_warning = None
-    # Reset output filters to ensure the selected character is not filtered out
+    # Reset all filters to ensure the selected character is not filtered out
+    st.session_state.stroke_count = 0
+    st.session_state.radical = "No Filter"
+    st.session_state.component_idc = "No Filter"
     st.session_state.selected_idc = "No Filter"
     st.session_state.output_radical = "No Filter"
-    st.session_state.debug_info = f"Output char selected: '{selected_char}' (Filters reset)"
+    st.session_state.debug_info = f"Output char selected: '{selected_char}' (Output dropdown takes precedence)"
 
 def on_reset_filters():
     st.session_state.stroke_count = 0
@@ -401,6 +406,9 @@ def render_controls(component_map):
             # Add components from the selected character's decomposition
             selected_char_components = get_all_components(st.session_state.selected_comp, max_depth=5) if st.session_state.selected_comp else set()
             filtered_components.extend([comp for comp in selected_char_components if comp not in filtered_components and comp in component_map])
+            # Ensure current selected_comp is included
+            if st.session_state.selected_comp and st.session_state.selected_comp in component_map and st.session_state.selected_comp not in filtered_components:
+                filtered_components.append(st.session_state.selected_comp)
             sorted_components = sorted(filtered_components, key=lambda c: get_stroke_count(c) or 0)
             
             if not sorted_components:
@@ -572,12 +580,11 @@ def main():
         selected_char_components = get_all_components(st.session_state.selected_comp, max_depth=5) if st.session_state.selected_comp else set()
         output_options = sorted(filtered_chars, key=lambda c: get_stroke_count(c) or 0)
         output_options.extend([comp for comp in selected_char_components if comp not in output_options and comp in component_map])
-        # Ensure the current output_char_select is included if valid
-        if (st.session_state.get('output_char_select') and
-                st.session_state.output_char_select != "Select a character..." and
-                st.session_state.output_char_select in component_map and
-                st.session_state.output_char_select not in output_options):
-            output_options.append(st.session_state.output_char_select)
+        # Ensure the current selected_comp is included
+        if (st.session_state.selected_comp and
+                st.session_state.selected_comp in component_map and
+                st.session_state.selected_comp not in output_options):
+            output_options.append(st.session_state.selected_comp)
         options = ["Select a character..."] + sorted(output_options, key=lambda c: get_stroke_count(c) or 0)
         if (st.session_state.previous_selected_comp and
                 st.session_state.previous_selected_comp != st.session_state.selected_comp and
@@ -635,6 +642,7 @@ def main():
         st.write(f"Total components: {len(component_map)}, Radicals: {len(radicals)}")
         st.write(f"Current text_input_comp: '{st.session_state.text_input_comp}'")
         st.write(f"Current selected_comp: '{st.session_state.selected_comp}'")
+        st.write(f"Current output_char_select: '{st.session_state.get('output_char_select', 'Not set')}'")
         st.write(f"Current stroke_count: {st.session_state.stroke_count}")
         st.write(f"Current radical: {st.session_state.radical}")
         st.write(f"Current component_idc: {st.session_state.component_idc}")
