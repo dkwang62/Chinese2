@@ -265,10 +265,13 @@ def on_output_char_select(component_map):
         return
     st.session_state.previous_selected_comp = st.session_state.selected_comp
     st.session_state.selected_comp = selected_char
+    st.session_state.text_input_comp = selected_char
     st.session_state.page = 1
     st.session_state.text_input_warning = None
-    st.session_state.text_input_comp = selected_char
-    st.session_state.debug_info = f"Output char selected: '{selected_char}'"
+    # Reset output filters to ensure the selected character is not filtered out
+    st.session_state.selected_idc = "No Filter"
+    st.session_state.output_radical = "No Filter"
+    st.session_state.debug_info = f"Output char selected: '{selected_char}' (Filters reset)"
 
 def on_reset_filters():
     st.session_state.stroke_count = 0
@@ -569,15 +572,24 @@ def main():
         selected_char_components = get_all_components(st.session_state.selected_comp, max_depth=5) if st.session_state.selected_comp else set()
         output_options = sorted(filtered_chars, key=lambda c: get_stroke_count(c) or 0)
         output_options.extend([comp for comp in selected_char_components if comp not in output_options and comp in component_map])
+        # Ensure the current output_char_select is included if valid
+        if (st.session_state.get('output_char_select') and
+                st.session_state.output_char_select != "Select a character..." and
+                st.session_state.output_char_select in component_map and
+                st.session_state.output_char_select not in output_options):
+            output_options.append(st.session_state.output_char_select)
         options = ["Select a character..."] + sorted(output_options, key=lambda c: get_stroke_count(c) or 0)
         if (st.session_state.previous_selected_comp and
                 st.session_state.previous_selected_comp != st.session_state.selected_comp and
                 st.session_state.previous_selected_comp not in output_options and
                 st.session_state.previous_selected_comp in component_map):
             options.insert(1, st.session_state.previous_selected_comp)
+        # Set dropdown index to current output_char_select if valid
+        index = options.index(st.session_state.output_char_select) if st.session_state.get('output_char_select') in options else 0
         st.selectbox(
             "Select a character from the list below:",
             options=options,
+            index=index,
             key="output_char_select",
             on_change=on_output_char_select,
             args=(component_map,),
