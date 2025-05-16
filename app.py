@@ -185,7 +185,8 @@ def init_session_state():
         "debug_info": "",
         "last_processed_input": "",
         "diagnostic_messages": [],
-        "font_scale": 1.0
+        "font_scale": 1.0,
+        "output_selected_char": None
     }
     for key, value in defaults.items():
         st.session_state.setdefault(key, value)
@@ -264,19 +265,12 @@ def on_output_char_select(component_map):
             warning_msg = "Invalid character selected."
             st.session_state.diagnostic_messages.append({"type": "warning", "message": warning_msg})
         st.session_state.output_char_select = "Select a character..."
+        st.session_state.output_selected_char = None
+        st.session_state.debug_info = "Output char selection cleared"
         return
-    st.session_state.previous_selected_comp = st.session_state.selected_comp
-    st.session_state.selected_comp = selected_char
-    st.session_state.text_input_comp = selected_char
-    st.session_state.page = 1
+    st.session_state.output_selected_char = selected_char
     st.session_state.text_input_warning = None
-    # Reset all filters to ensure the selected character is not filtered out
-    st.session_state.stroke_count = 0
-    st.session_state.radical = "No Filter"
-    st.session_state.component_idc = "No Filter"
-    st.session_state.selected_idc = "No Filter"
-    st.session_state.output_radical = "No Filter"
-    st.session_state.debug_info = f"Output char selected: '{selected_char}' (Output dropdown takes precedence)"
+    st.session_state.debug_info = f"Output char selected: '{selected_char}' (Displays only this char and components)"
 
 def on_reset_filters():
     st.session_state.stroke_count = 0
@@ -287,6 +281,8 @@ def on_reset_filters():
     st.session_state.page = 1
     st.session_state.text_input_warning = None
     st.session_state.text_input_comp = ""
+    st.session_state.output_char_select = "Select a character..."
+    st.session_state.output_selected_char = None
     st.session_state.debug_info = "Filters reset"
 
 def is_reset_needed():
@@ -371,7 +367,7 @@ def render_controls(component_map):
                 comp for comp in component_map
                 if isinstance(comp, str) and len(comp) == 1 and
                 (st.session_state.stroke_count == 0 or get_stroke_count(comp) == st.session_state.stroke_count) and
-                (st.session_state.radical == "No Filter" or component_map.get(comp, {}).get("meta", {}).get("radical", "") == st.session_state.radical)
+                (st.session_state.radical == "No Filter" or component_map.get(c, {}).get("meta", {}).get("radical", "") == st.session_state.radical)
             ]
             component_idcs = {"No Filter"} | {
                 component_map.get(c, {}).get("meta", {}).get("decomposition", "")[0]
@@ -591,7 +587,6 @@ def main():
                 st.session_state.previous_selected_comp not in output_options and
                 st.session_state.previous_selected_comp in component_map):
             options.insert(1, st.session_state.previous_selected_comp)
-        # Set dropdown index to current output_char_select if valid
         index = options.index(st.session_state.output_char_select) if st.session_state.get('output_char_select') in options else 0
         st.selectbox(
             "Select a character from the list below:",
@@ -611,19 +606,40 @@ def main():
             )
         )
 
-    st.markdown(f"<h2 class='results-header'>🧬 Results for {st.session_state.selected_comp} — {len(filtered_chars)} result(s)</h2>", unsafe_allow_html=True)
-    for char in sorted(filtered_chars, key=lambda c: get_stroke_count(c) or 0):
-        render_char_card(char, char_compounds.get(char, []))
+    # Render results based on output_selected_char
+    if st.session_state.output_selected_char and st.session_state.output_selected_char in component_map:
+        selected_char = st.session_state.output_selected_char
+        compounds = [] if st.session_state.display_mode == "Single Character" else [
+            comp for comp in component_map.get(selected_char, {}).get("meta", {}).get("compounds", [])
+            if len(comp) == int(st.session_state.display_mode[0])
+        ]
+        components = get_all_components(selected_char, max_depth=5)
+        st.markdown(f"<h2 class='results-header'>🧬 Selected Character: {selected_char}</h2>", unsafe_allow_html=True)
+        render_char_card(selected_char, compounds)
+        if components:
+            st.markdown(f"<h3 class='results-header'>Components of {selected_char}</h3>", unsafe_allow_html=True)
+            for comp in sorted(components, key=lambda c: get_stroke_count(c) or 0):
+                render_char_card(comp, [])
+    else:
+        st.markdown(f"<h2 class='results-header'>🧬 Results for {st.session_state.selected_comp} — {len(filtered_chars)} result(s)</h2>", unsafe_allow_html=True)
+        for char in sorted(filtered_chars, key=lambda c: get_stroke_count(c) or 0):
+            render_char_card(char, char_compounds.get(char, []))
 
     if filtered_chars and st.session_state.display_mode != "Single Character":
         with st.expander("Export Compounds"):
             st.caption("Copy this text to get pinyin and meanings for the displayed compounds.")
             export_text = "Give me the hanyu pinyin and meaning of each compound phrase in one line a phrase in a downloadable word file\n\n"
-            export_text += "\n".join(
-                compound
-                for char in filtered_chars
-                for compound in char_compounds.get(char, [])
-            )
+            if st.session_state.output_selected_char and st.session_state.output_selected_char in component_map:
+                export_text += "\n".join(
+                    compound
+                    for compound in char_compounds.get(st.session_state.output_selected_char, [])
+                )
+            else:
+                export_text += "\n".join(
+                    compound
+                    for char in filtered_chars
+                    for compound in char_compounds.get(char, [])
+                )
             st.text_area("Export Text", export_text, height=200, key="export_text")
             components.html(f"""
                 <textarea id="copyTarget" style="opacity:0;position:absolute;left:-9999px;">{export_text}</textarea>
@@ -643,6 +659,7 @@ def main():
         st.write(f"Current text_input_comp: '{st.session_state.text_input_comp}'")
         st.write(f"Current selected_comp: '{st.session_state.selected_comp}'")
         st.write(f"Current output_char_select: '{st.session_state.get('output_char_select', 'Not set')}'")
+        st.write(f"Current output_selected_char: '{st.session_state.get('output_selected_char', 'None')}'")
         st.write(f"Current stroke_count: {st.session_state.stroke_count}")
         st.write(f"Current radical: {st.session_state.radical}")
         st.write(f"Current component_idc: {st.session_state.component_idc}")
