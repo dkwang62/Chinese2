@@ -106,7 +106,7 @@ def load_component_map():
                     entry["meta"]["decomposition"] = ""
             return data
     except Exception as e:
-        error_msg = f"Failed to load enhanced_component_map_with_etymology.json: {e}"
+        error_msg = f"Failed to load strokes2.json: {e}"
         st.error(error_msg)
         st.session_state.diagnostic_messages.append({"type": "error", "message": error_msg})
         return {}
