@@ -56,6 +56,18 @@ def apply_dynamic_css():
             border-radius: 8px;
             margin-bottom: 15px;
         }}
+        .input-section {{
+            background-color: #e6f3ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }}
+        .output-section {{
+            background-color: #e6ffe6;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }}
         .stButton button {{
             background-color: #3498db;
             color: white;
@@ -85,6 +97,7 @@ def apply_dynamic_css():
             .char-card {{ padding: 10px; }}
             .char-title {{ font-size: calc(1.2em * {font_scale}); }}
             .compounds-title {{ font-size: calc(1em * {font_scale}); }}
+            .input-section, .output-section {{ padding: 10px; }}
         }}
     </style>
     """
@@ -442,11 +455,13 @@ def render_controls(component_map):
 
     # Input row for component selection
     with st.container():
-        st.markdown("### Select Input Component")
-        st.caption("Choose or type a single character to explore its related characters.")
+        st.markdown("<div class='input-section'>", unsafe_allow_html=True)
+        st.markdown("### Choose Input Component")
+        st.caption("Select or type a single Chinese character to explore its related characters and compounds.")
         col4, col5 = st.columns([1.5, 0.2])
 
         with col4:
+            # Compute filtered components after all filters
             filtered_components = [
                 comp for comp in component_map
                 if isinstance(comp, str) and len(comp) == 1 and comp != '?' and
@@ -454,12 +469,12 @@ def render_controls(component_map):
                 (st.session_state.radical == "No Filter" or component_map.get(comp, {}).get("meta", {}).get("radical", "") == st.session_state.radical) and
                 (st.session_state.component_idc == "No Filter" or component_map.get(comp, {}).get("meta", {}).get("decomposition", "").startswith(st.session_state.component_idc))
             ]
-            # Add components from the selected character's decomposition
-            selected_char_components = get_all_components(st.session_state.selected_comp, max_depth=5) if st.session_state.selected_comp else set()
-            filtered_components.extend([comp for comp in selected_char_components if comp not in filtered_components and comp in component_map and comp != '?'])
-            # Ensure current selected_comp is included
-            if st.session_state.selected_comp and st.session_state.selected_comp in component_map and st.session_state.selected_comp not in filtered_components and st.session_state.selected_comp != '?':
-                filtered_components.append(st.session_state.selected_comp)
+            # Log filtered components
+            st.session_state.diagnostic_messages.append({
+                "type": "info",
+                "message": f"Filtered components: {len(filtered_components)} components"
+            })
+
             sorted_components = sorted(filtered_components, key=lambda c: get_stroke_count(c) or 0)
             
             if not sorted_components:
@@ -468,7 +483,9 @@ def render_controls(component_map):
                 warning_msg = "No components match the current filters. Please adjust the stroke count, radical, or IDC filters."
                 st.session_state.diagnostic_messages.append({"type": "warning", "message": warning_msg})
                 st.warning(warning_msg)
+                st.markdown("</div>", unsafe_allow_html=True)
                 return
+            # Reset selected_comp if it doesn't match filters
             if st.session_state.selected_comp not in sorted_components:
                 st.session_state.selected_comp = sorted_components[0]
                 st.session_state.text_input_comp = sorted_components[0]
@@ -503,6 +520,7 @@ def render_controls(component_map):
                 args=(component_map,),
                 placeholder="Enter one Chinese character"
             )
+        st.markdown("</div>", unsafe_allow_html=True)
 
     # JavaScript to handle paste events
     components.html("""
@@ -523,8 +541,9 @@ def render_controls(component_map):
 
     # Output filters and results
     with st.container():
-        st.markdown("### Filter Output Characters")
-        st.caption("Customize the output by character structure and display mode.")
+        st.markdown("<div class='output-section'>", unsafe_allow_html=True)
+        st.markdown("### Select Output Character")
+        st.caption("Choose a character from the results to view only that character and its components.")
         col6, col7, col8 = st.columns([0.33, 0.33, 0.34])
         with col6:
             idcs = {"No Filter"} | {
@@ -560,6 +579,7 @@ def render_controls(component_map):
         with col8:
             st.radio("Output Type:", ["Single Character", "2-Character Phrases", "3-Character Phrases", "4-Character Phrases"], key="display_mode")
         st.button("Reset Filters", on_click=on_reset_filters, disabled=not is_reset_needed())
+        st.markdown("</div>", unsafe_allow_html=True)
 
 # Render character card
 def render_char_card(char, compounds):
@@ -599,6 +619,7 @@ def main():
         st.info("Please select or type a valid component to view results.")
         return
 
+    st.markdown("### Selected Input Component")
     meta = component_map.get(st.session_state.selected_comp, {}).get("meta", {})
     fields = {
         "Pinyin": clean_field(meta.get("pinyin", "—")),
@@ -673,14 +694,14 @@ def main():
             if len(comp) == int(st.session_state.display_mode[0])
         ]
         components = get_all_components(selected_char, max_depth=5)
-        st.markdown(f"<h2 class='results-header'>🧬 Selected Character: {selected_char}</h2>", unsafe_allow_html=True)
+        st.markdown(f"<h2 class='results-header'>Selected Output Character: {selected_char}</h2>", unsafe_allow_html=True)
         render_char_card(selected_char, compounds)
         if components:
             st.markdown(f"<h3 class='results-header'>Components of {selected_char}</h3>", unsafe_allow_html=True)
             for comp in sorted(components, key=lambda c: get_stroke_count(c) or 0):
                 render_char_card(comp, [])
     else:
-        st.markdown(f"<h2 class='results-header'>🧬 Results for {st.session_state.selected_comp} — {len(filtered_chars)} result(s)</h2>", unsafe_allow_html=True)
+        st.markdown(f"<h2 class='results-header'>Output Characters for {st.session_state.selected_comp} — {len(filtered_chars)} result(s)</h2>", unsafe_allow_html=True)
         for char in sorted(filtered_chars, key=lambda c: get_stroke_count(c) or 0):
             render_char_card(char, char_compounds.get(char, []))
 
