@@ -16,24 +16,24 @@ def apply_dynamic_css():
     <style>
         .selected-card {{
             background-color: #e8f4f8;
-            padding: 15px;
+            padding: 5px;
             border-radius: 10px;
-            margin-bottom: 20px;
+            margin-bottom: 5px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 10px;
             border-left: 5px solid #3498db;
         }}
         .selected-char {{ font-size: calc(2.5em * {font_scale}); color: #e74c3c; margin: 0; }}
         .details {{ font-size: calc(1.5em * {font_scale}); color: #34495e; margin: 0; }}
         .details strong {{ color: #2c3e50; }}
-        .results-header {{ font-size: calc(1.5em * {font_scale}); color: #2c3e50; margin: 20px 0 10px; }}
+        .results-header {{ font-size: calc(1.5em * {font_scale}); color: #2c3e50; margin: 5px 0; }}
         .char-card {{
             background-color: #ffffff;
-            padding: 15px;
+            padding: 10px;
             border-radius: 8px;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             transition: transform 0.2s;
         }}
@@ -44,37 +44,37 @@ def apply_dynamic_css():
         .char-title {{ font-size: calc(1.4em * {font_scale}); color: #e74c3c; margin: 0; display: inline; }}
         .compounds-section {{
             background-color: #f1f8e9;
-            padding: 10px;
+            padding: 5px;
             border-radius: 5px;
-            margin-top: 10px;
+            margin-top: 5px;
         }}
         .compounds-title {{ font-size: calc(1.1em * {font_scale}); color: #558b2f; margin: 0 0 5px; }}
         .compounds-list {{ font-size: calc(1em * {font_scale}); color: #34495e; margin: 0; }}
         .stContainer {{
-            padding: 10px;
+            padding: 5px;
             border: 1px solid #e0e0e0;
             border-radius: 8px;
-            margin-bottom: 15px;
+            margin-bottom: 5px;
         }}
         .input-section {{
             background-color: #e6f3ff;
-            padding: 10px;
+            padding: 5px;
             border-radius: 10px;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             border: 1px solid #b3d4ff;
         }}
         .output-section {{
             background-color: #e6ffe6;
-            padding: 10px;
+            padding: 5px;
             border-radius: 10px;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             border: 1px solid #b3ffb3;
         }}
         .filter-section {{
             background-color: #f8f9fa;
-            padding: 15px;
+            padding: 10px;
             border-radius: 8px;
-            margin-bottom: 15px;
+            margin-bottom: 5px;
         }}
         .stButton button {{
             background-color: #3498db;
@@ -87,9 +87,9 @@ def apply_dynamic_css():
         }}
         .debug-section {{
             background-color: #f5f5f5;
-            padding: 10px;
+            padding: 5px;
             border-radius: 5px;
-            margin-top: 20px;
+            margin-top: 5px;
         }}
         .diagnostic-message.error {{ color: #c0392b; }}
         .diagnostic-message.warning {{ color: #e67e22; }}
@@ -98,14 +98,14 @@ def apply_dynamic_css():
             font-size: calc(0.9em * {font_scale});
         }}
         @media (max-width: 768px) {{
-            .selected-card {{ flex-direction: column; align-items: flex-start; padding: 10px; }}
+            .selected-card {{ flex-direction: column; align-items: flex-start; padding: 5px; }}
             .selected-char {{ font-size: calc(2em * {font_scale}); }}
             .details, .compounds-list {{ font-size: calc(0.95em * {font_scale}); line-height: 1.5; }}
             .results-header {{ font-size: calc(1.3em * {font_scale}); }}
-            .char-card {{ padding: 10px; }}
+            .char-card {{ padding: 5px; }}
             .char-title {{ font-size: calc(1.2em * {font_scale}); }}
             .compounds-title {{ font-size: calc(1em * {font_scale}); }}
-            .input-section, .output-section, .filter-section {{ padding: 10px; }}
+            .input-section, .output-section, .filter-section {{ padding: 5px; }}
         }}
     </style>
     """
@@ -394,145 +394,143 @@ def render_input_controls(component_map):
         "⿻": "Overlaid"
     }
 
-    with st.container():
-        st.markdown("<div class='input-section'>", unsafe_allow_html=True)
-        st.markdown("### Choose Input Component")
-        st.caption("Select or type a single Chinese character to explore its related characters and compounds.")
+    st.markdown("<div class='input-section'>", unsafe_allow_html=True)
+    st.markdown("### Choose Input Component")
+    st.caption("Select or type a single Chinese character to explore its related characters and compounds.")
 
-        with st.container():
-            st.markdown("<div class='filter-section'>", unsafe_allow_html=True)
-            st.markdown("#### Component Filters")
-            st.caption("Filter available components by stroke count, radical, or structure.")
-            col1, col2, col3 = st.columns([0.4, 0.4, 0.4])
+    st.markdown("<div class='filter-section'>", unsafe_allow_html=True)
+    st.markdown("#### Component Filters")
+    st.caption("Filter available components by stroke count, radical, or structure.")
+    col1, col2, col3 = st.columns([0.4, 0.4, 0.4])
 
-            with col1:
-                stroke_counts = sorted(set(
-                    sc for sc in (
-                        get_stroke_count(comp) for comp in component_map
-                        if isinstance(comp, str) and len(comp) == 1 and comp != '?'
-                    ) if isinstance(sc, int) and sc > 0
-                ))
-                if stroke_counts:
-                    st.selectbox(
-                        "Filter by Strokes:",
-                        options=[0] + stroke_counts,
-                        key="stroke_count",
-                        format_func=lambda x: "No Filter" if x == 0 else str(x)
-                    )
-                else:
-                    st.warning("No valid stroke counts available. Using fallback options.")
-                    st.selectbox(
-                        "Filter by Strokes:",
-                        options=[0],
-                        key="stroke_count",
-                        format_func=lambda x: "No Filter"
-                    )
-
-            with col2:
-                pre_filtered_components = [
-                    comp for comp in component_map
-                    if isinstance(comp, str) and len(comp) == 1 and comp != '?' and
-                    (st.session_state.stroke_count == 0 or get_stroke_count(comp) == st.session_state.stroke_count)
-                ]
-                radicals = {"No Filter"} | {
-                    component_map.get(comp, {}).get("meta", {}).get("radical", "")
-                    for comp in pre_filtered_components
-                    if component_map.get(comp, {}).get("meta", {}).get("radical", "")
-                }
-                radical_options = ["No Filter"] + sorted(radicals - {"No Filter"})
-                if st.session_state.radical not in radical_options:
-                    st.session_state.radical = "No Filter"
-                st.selectbox(
-                    "Filter by Radical:",
-                    options=radical_options,
-                    index=radical_options.index(st.session_state.radical),
-                    key="radical"
-                )
-
-            with col3:
-                pre_filtered_components = [
-                    comp for comp in component_map
-                    if isinstance(comp, str) and len(comp) == 1 and comp != '?' and
-                    (st.session_state.stroke_count == 0 or get_stroke_count(comp) == st.session_state.stroke_count) and
-                    (st.session_state.radical == "No Filter" or component_map.get(comp, {}).get("meta", {}).get("radical", "") == st.session_state.radical)
-                ]
-                component_idcs = {"No Filter"} | {
-                    component_map.get(comp, {}).get("meta", {}).get("decomposition", "")[0]
-                    for comp in pre_filtered_components
-                    if component_map.get(comp, {}).get("meta", {}).get("decomposition", "") and component_map.get(comp, {}).get("meta", {}).get("decomposition", "")[0] in IDC_CHARS
-                }
-                component_idc_options = ["No Filter"] + sorted(component_idcs - {"No Filter"})
-                if st.session_state.component_idc not in component_idc_options:
-                    st.session_state.component_idc = "No Filter"
-                st.selectbox(
-                    "Filter by Structure IDC:",
-                    options=component_idc_options,
-                    format_func=lambda x: f"{x} ({idc_descriptions.get(x, x)})" if x != "No Filter" else x,
-                    index=component_idc_options.index(st.session_state.component_idc),
-                    key="component_idc"
-                )
-
-            st.button("Reset Input Filters", on_click=on_reset_input_filters, disabled=not is_input_reset_needed())
-            st.markdown("</div>", unsafe_allow_html=True)
-
-        col4, col5 = st.columns([1.5, 0.2])
-        with col4:
-            filtered_components = [
-                comp for comp in component_map
-                if isinstance(comp, str) and len(comp) == 1 and comp != '?' and
-                (st.session_state.stroke_count == 0 or get_stroke_count(comp) == st.session_state.stroke_count) and
-                (st.session_state.radical == "No Filter" or component_map.get(comp, {}).get("meta", {}).get("radical", "") == st.session_state.radical) and
-                (st.session_state.component_idc == "No Filter" or component_map.get(comp, {}).get("meta", {}).get("decomposition", "").startswith(st.session_state.component_idc))
-            ]
-            st.session_state.diagnostic_messages.append({
-                "type": "info",
-                "message": f"Filtered components: {len(filtered_components)} components"
-            })
-
-            sorted_components = sorted(filtered_components, key=lambda c: get_stroke_count(c) or 0)
-            
-            if not sorted_components:
-                st.session_state.selected_comp = ""
-                st.session_state.text_input_comp = ""
-                warning_msg = "No components match the current filters. Please adjust the stroke count, radical, or IDC filters."
-                st.session_state.diagnostic_messages.append({"type": "warning", "message": warning_msg})
-                st.warning(warning_msg)
-            else:
-                if st.session_state.selected_comp not in sorted_components:
-                    st.session_state.selected_comp = sorted_components[0]
-                    st.session_state.text_input_comp = sorted_components[0]
-                    st.session_state.debug_info += f"; Reset selected_comp to '{sorted_components[0]}' due to filters"
-
-                index = sorted_components.index(st.session_state.selected_comp) if st.session_state.selected_comp in sorted_components else 0
-                st.selectbox(
-                    "Select a component:",
-                    options=sorted_components,
-                    index=index,
-                    format_func=lambda c: (
-                        c if c == "Select a component..." else
-                        f"{c} (Pinyin: {clean_field(component_map.get(c, {}).get('meta', {}).get('pinyin', '—'))}, "
-                        f"Strokes: {get_stroke_count(c) or 'unknown'}, "
-                        f"Radical: {clean_field(component_map.get(c, {}).get('meta', {}).get('radical', '—'))}, "
-                        f"Decomposition: {format_decomposition(c)}, "
-                        f"Definition: {clean_field(component_map.get(c, {}).get('meta', {}).get('definition', 'No definition available'))}, "
-                        f"Etymology: {get_etymology_text(component_map.get(c, {}).get('meta', {}))})"
-                    ),
-                    key="selected_comp",
-                    on_change=on_selectbox_change
-                )
-
-        with col5:
-            if st.session_state.text_input_warning:
-                st.warning(st.session_state.text_input_warning)
-            st.text_input(
-                "Or type:",
-                value=st.session_state.text_input_comp,
-                key="text_input_comp",
-                on_change=process_text_input,
-                args=(component_map,),
-                placeholder="Enter one Chinese character"
+    with col1:
+        stroke_counts = sorted(set(
+            sc for sc in (
+                get_stroke_count(comp) for comp in component_map
+                if isinstance(comp, str) and len(comp) == 1 and comp != '?'
+            ) if isinstance(sc, int) and sc > 0
+        ))
+        if stroke_counts:
+            st.selectbox(
+                "Filter by Strokes:",
+                options=[0] + stroke_counts,
+                key="stroke_count",
+                format_func=lambda x: "No Filter" if x == 0 else str(x)
             )
-        st.markdown("</div>", unsafe_allow_html=True)
+        else:
+            st.warning("No valid stroke counts available. Using fallback options.")
+            st.selectbox(
+                "Filter by Strokes:",
+                options=[0],
+                key="stroke_count",
+                format_func=lambda x: "No Filter"
+            )
+
+    with col2:
+        pre_filtered_components = [
+            comp for comp in component_map
+            if isinstance(comp, str) and len(comp) == 1 and comp != '?' and
+            (st.session_state.stroke_count == 0 or get_stroke_count(comp) == st.session_state.stroke_count)
+        ]
+        radicals = {"No Filter"} | {
+            component_map.get(comp, {}).get("meta", {}).get("radical", "")
+            for comp in pre_filtered_components
+            if component_map.get(comp, {}).get("meta", {}).get("radical", "")
+        }
+        radical_options = ["No Filter"] + sorted(radicals - {"No Filter"})
+        if st.session_state.radical not in radical_options:
+            st.session_state.radical = "No Filter"
+        st.selectbox(
+            "Filter by Radical:",
+            options=radical_options,
+            index=radical_options.index(st.session_state.radical),
+            key="radical"
+        )
+
+    with col3:
+        pre_filtered_components = [
+            comp for comp in component_map
+            if isinstance(comp, str) and len(comp) == 1 and comp != '?' and
+            (st.session_state.stroke_count == 0 or get_stroke_count(comp) == st.session_state.stroke_count) and
+            (st.session_state.radical == "No Filter" or component_map.get(comp, {}).get("meta", {}).get("radical", "") == st.session_state.radical)
+        ]
+        component_idcs = {"No Filter"} | {
+            component_map.get(comp, {}).get("meta", {}).get("decomposition", "")[0]
+            for comp in pre_filtered_components
+            if component_map.get(comp, {}).get("meta", {}).get("decomposition", "") and component_map.get(comp, {}).get("meta", {}).get("decomposition", "")[0] in IDC_CHARS
+        }
+        component_idc_options = ["No Filter"] + sorted(component_idcs - {"No Filter"})
+        if st.session_state.component_idc not in component_idc_options:
+            st.session_state.component_idc = "No Filter"
+        st.selectbox(
+            "Filter by Structure IDC:",
+            options=component_idc_options,
+            format_func=lambda x: f"{x} ({idc_descriptions.get(x, x)})" if x != "No Filter" else x,
+            index=component_idc_options.index(st.session_state.component_idc),
+            key="component_idc"
+        )
+
+    st.button("Reset Input Filters", on_click=on_reset_input_filters, disabled=not is_input_reset_needed())
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    col4, col5 = st.columns([1.5, 0.2])
+    with col4:
+        filtered_components = [
+            comp for comp in component_map
+            if isinstance(comp, str) and len(comp) == 1 and comp != '?' and
+            (st.session_state.stroke_count == 0 or get_stroke_count(comp) == st.session_state.stroke_count) and
+            (st.session_state.radical == "No Filter" or component_map.get(comp, {}).get("meta", {}).get("radical", "") == st.session_state.radical) and
+            (st.session_state.component_idc == "No Filter" or component_map.get(comp, {}).get("meta", {}).get("decomposition", "").startswith(st.session_state.component_idc))
+        ]
+        st.session_state.diagnostic_messages.append({
+            "type": "info",
+            "message": f"Filtered components: {len(filtered_components)} components"
+        })
+
+        sorted_components = sorted(filtered_components, key=lambda c: get_stroke_count(c) or 0)
+        
+        if not sorted_components:
+            st.session_state.selected_comp = ""
+            st.session_state.text_input_comp = ""
+            warning_msg = "No components match the current filters. Please adjust the stroke count, radical, or IDC filters."
+            st.session_state.diagnostic_messages.append({"type": "warning", "message": warning_msg})
+            st.warning(warning_msg)
+        else:
+            if st.session_state.selected_comp not in sorted_components:
+                st.session_state.selected_comp = sorted_components[0]
+                st.session_state.text_input_comp = sorted_components[0]
+                st.session_state.debug_info += f"; Reset selected_comp to '{sorted_components[0]}' due to filters"
+
+            index = sorted_components.index(st.session_state.selected_comp) if st.session_state.selected_comp in sorted_components else 0
+            st.selectbox(
+                "Select a component:",
+                options=sorted_components,
+                index=index,
+                format_func=lambda c: (
+                    c if c == "Select a component..." else
+                    f"{c} (Pinyin: {clean_field(component_map.get(c, {}).get('meta', {}).get('pinyin', '—'))}, "
+                    f"Strokes: {get_stroke_count(c) or 'unknown'}, "
+                    f"Radical: {clean_field(component_map.get(c, {}).get('meta', {}).get('radical', '—'))}, "
+                    f"Decomposition: {format_decomposition(c)}, "
+                    f"Definition: {clean_field(component_map.get(c, {}).get('meta', {}).get('definition', 'No definition available'))}, "
+                    f"Etymology: {get_etymology_text(component_map.get(c, {}).get('meta', {}))})"
+                ),
+                key="selected_comp",
+                on_change=on_selectbox_change
+            )
+
+    with col5:
+        if st.session_state.text_input_warning:
+            st.warning(st.session_state.text_input_warning)
+        st.text_input(
+            "Or type:",
+            value=st.session_state.text_input_comp,
+            key="text_input_comp",
+            on_change=process_text_input,
+            args=(component_map,),
+            placeholder="Enter one Chinese character"
+        )
+    st.markdown("</div>", unsafe_allow_html=True)
 
     components.html("""
         <script>
@@ -568,105 +566,103 @@ def render_output_controls(component_map):
         "⿻": "Overlaid"
     }
 
-    with st.container():
-        st.markdown("<div class='output-section'>", unsafe_allow_html=True)
-        st.markdown("### Select Output Character")
-        st.caption("Choose a character from the results to view only that character and its components.")
+    st.markdown("<div class='output-section'>", unsafe_allow_html=True)
+    st.markdown("### Select Output Character")
+    st.caption("Choose a character from the results to view only that character and its components.")
 
-        with st.container():
-            st.markdown("<div class='filter-section'>", unsafe_allow_html=True)
-            st.markdown("#### Output Filters")
-            st.caption("Customize the output by character structure, radical, or display mode.")
-            col6, col7, col8 = st.columns([0.33, 0.33, 0.34])
+    st.markdown("<div class='filter-section'>", unsafe_allow_html=True)
+    st.markdown("#### Output Filters")
+    st.caption("Customize the output by character structure, radical, or display mode.")
+    col6, col7, col8 = st.columns([0.33, 0.33, 0.34])
 
-            with col6:
-                if st.session_state.selected_comp and st.session_state.selected_comp in component_map:
-                    idcs = {"No Filter"} | {
-                        component_map.get(c, {}).get("meta", {}).get("decomposition", "")[0]
-                        for c in component_map.get(st.session_state.selected_comp, {}).get("related_characters", [])
-                        if isinstance(c, str) and len(c) == 1 and c != '?' and component_map.get(c, {}).get("meta", {}).get("decomposition", "") and component_map.get(c, {}).get("meta", {}).get("decomposition", "")[0] in IDC_CHARS
-                    }
-                    idc_options = ["No Filter"] + sorted(idcs - {"No Filter"})
-                    if st.session_state.selected_idc not in idc_options:
-                        st.session_state.selected_idc = "No Filter"
-                    st.selectbox(
-                        "Result IDC:",
-                        options=idc_options,
-                        format_func=lambda x: f"{x} ({idc_descriptions.get(x, x)})" if x != "No Filter" else x,
-                        index=idc_options.index(st.session_state.selected_idc),
-                        key="selected_idc"
-                    )
-                else:
-                    st.write("Select an input component first.")
-
-            with col7:
-                if st.session_state.selected_comp and st.session_state.selected_comp in component_map:
-                    output_radicals = {"No Filter"} | {
-                        component_map.get(c, {}).get("meta", {}).get("radical", "")
-                        for c in component_map.get(st.session_state.selected_comp, {}).get("related_characters", [])
-                        if isinstance(c, str) and len(c) == 1 and c != '?' and component_map.get(c, {}).get("meta", {}).get("radical", "")
-                    }
-                    output_radical_options = ["No Filter"] + sorted(output_radicals - {"No Filter"})
-                    if st.session_state.output_radical not in output_radical_options:
-                        st.session_state.output_radical = "No Filter"
-                    st.selectbox(
-                        "Result Radical:",
-                        options=output_radical_options,
-                        index=output_radical_options.index(st.session_state.output_radical),
-                        key="output_radical"
-                    )
-                else:
-                    st.write("Select an input component first.")
-
-            with col8:
-                st.radio("Output Type:", ["Single Character", "2-Character Phrases", "3-Character Phrases", "4-Character Phrases"], key="display_mode")
-
-            st.button("Reset Output Filters", on_click=on_reset_output_filters, disabled=not is_output_reset_needed())
-            st.markdown("</div>", unsafe_allow_html=True)
-
+    with col6:
         if st.session_state.selected_comp and st.session_state.selected_comp in component_map:
-            related = component_map.get(st.session_state.selected_comp, {}).get("related_characters", [])
-            filtered_chars = [
-                c for c in related
-                if isinstance(c, str) and len(c) == 1 and c != '?' and
-                (st.session_state.selected_idc == "No Filter" or component_map.get(c, {}).get("meta", {}).get("decomposition", "").startswith(st.session_state.selected_idc)) and
-                (st.session_state.output_radical == "No Filter" or component_map.get(c, {}).get("meta", {}).get("radical", "") == st.session_state.output_radical)
-            ]
-            char_compounds = {
-                c: [] if st.session_state.display_mode == "Single Character" else [
-                    comp for comp in component_map.get(c, {}).get("meta", {}).get("compounds", [])
-                    if len(comp) == int(st.session_state.display_mode[0])
-                ]
-                for c in filtered_chars
+            idcs = {"No Filter"} | {
+                component_map.get(c, {}).get("meta", {}).get("decomposition", "")[0]
+                for c in component_map.get(st.session_state.selected_comp, {}).get("related_characters", [])
+                if isinstance(c, str) and len(c) == 1 and c != '?' and component_map.get(c, {}).get("meta", {}).get("decomposition", "") and component_map.get(c, {}).get("meta", {}).get("decomposition", "")[0] in IDC_CHARS
             }
-            filtered_chars = [c for c in filtered_chars if st.session_state.display_mode == "Single Character" or char_compounds[c]]
-
-            if filtered_chars:
-                output_options = sorted([c for c in filtered_chars if c != '?'], key=lambda c: get_stroke_count(c) or 0)
-                options = ["Select a character..."] + output_options
-                index = options.index(st.session_state.output_char_select) if st.session_state.get('output_char_select') in options else 0
-                st.selectbox(
-                    "Select a character from the list below:",
-                    options=options,
-                    index=index,
-                    key="output_char_select",
-                    on_change=on_output_char_select,
-                    args=(component_map,),
-                    format_func=lambda c: (
-                        c if c == "Select a character..." else
-                        f"{c} (Pinyin: {clean_field(component_map.get(c, {}).get('meta', {}).get('pinyin', '—'))}, "
-                        f"Strokes: {get_stroke_count(c) or 'unknown'}, "
-                        f"Radical: {clean_field(component_map.get(c, {}).get('meta', {}).get('radical', '—'))}, "
-                        f"Decomposition: {format_decomposition(c)}, "
-                        f"Definition: {clean_field(component_map.get(c, {}).get('meta', {}).get('definition', 'No definition available'))}, "
-                        f"Etymology: {get_etymology_text(component_map.get(c, {}).get('meta', {}))})"
-                    )
-                )
-            else:
-                st.warning("No related characters match the current output filters.")
+            idc_options = ["No Filter"] + sorted(idcs - {"No Filter"})
+            if st.session_state.selected_idc not in idc_options:
+                st.session_state.selected_idc = "No Filter"
+            st.selectbox(
+                "Result IDC:",
+                options=idc_options,
+                format_func=lambda x: f"{x} ({idc_descriptions.get(x, x)})" if x != "No Filter" else x,
+                index=idc_options.index(st.session_state.selected_idc),
+                key="selected_idc"
+            )
         else:
-            st.warning("Please select a valid input component to enable output selection.")
-        st.markdown("</div>", unsafe_allow_html=True)
+            st.write("Select an input component first.")
+
+    with col7:
+        if st.session_state.selected_comp and st.session_state.selected_comp in component_map:
+            output_radicals = {"No Filter"} | {
+                component_map.get(c, {}).get("meta", {}).get("radical", "")
+                for c in component_map.get(st.session_state.selected_comp, {}).get("related_characters", [])
+                if isinstance(c, str) and len(c) == 1 and c != '?' and component_map.get(c, {}).get("meta", {}).get("radical", "")
+            }
+            output_radical_options = ["No Filter"] + sorted(output_radicals - {"No Filter"})
+            if st.session_state.output_radical not in output_radical_options:
+                st.session_state.output_radical = "No Filter"
+            st.selectbox(
+                "Result Radical:",
+                options=output_radical_options,
+                index=output_radical_options.index(st.session_state.output_radical),
+                key="output_radical"
+            )
+        else:
+            st.write("Select an input component first.")
+
+    with col8:
+        st.radio("Output Type:", ["Single Character", "2-Character Phrases", "3-Character Phrases", "4-Character Phrases"], key="display_mode")
+
+    st.button("Reset Output Filters", on_click=on_reset_output_filters, disabled=not is_output_reset_needed())
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    if st.session_state.selected_comp and st.session_state.selected_comp in component_map:
+        related = component_map.get(st.session_state.selected_comp, {}).get("related_characters", [])
+        filtered_chars = [
+            c for c in related
+            if isinstance(c, str) and len(c) == 1 and c != '?' and
+            (st.session_state.selected_idc == "No Filter" or component_map.get(c, {}).get("meta", {}).get("decomposition", "").startswith(st.session_state.selected_idc)) and
+            (st.session_state.output_radical == "No Filter" or component_map.get(c, {}).get("meta", {}).get("radical", "") == st.session_state.output_radical)
+        ]
+        char_compounds = {
+            c: [] if st.session_state.display_mode == "Single Character" else [
+                comp for comp in component_map.get(c, {}).get("meta", {}).get("compounds", [])
+                if len(comp) == int(st.session_state.display_mode[0])
+            ]
+            for c in filtered_chars
+        }
+        filtered_chars = [c for c in filtered_chars if st.session_state.display_mode == "Single Character" or char_compounds[c]]
+
+        if filtered_chars:
+            output_options = sorted([c for c in filtered_chars if c != '?'], key=lambda c: get_stroke_count(c) or 0)
+            options = ["Select a character..."] + output_options
+            index = options.index(st.session_state.output_char_select) if st.session_state.get('output_char_select') in options else 0
+            st.selectbox(
+                "Select a character from the list below:",
+                options=options,
+                index=index,
+                key="output_char_select",
+                on_change=on_output_char_select,
+                args=(component_map,),
+                format_func=lambda c: (
+                    c if c == "Select a character..." else
+                    f"{c} (Pinyin: {clean_field(component_map.get(c, {}).get('meta', {}).get('pinyin', '—'))}, "
+                    f"Strokes: {get_stroke_count(c) or 'unknown'}, "
+                    f"Radical: {clean_field(component_map.get(c, {}).get('meta', {}).get('radical', '—'))}, "
+                    f"Decomposition: {format_decomposition(c)}, "
+                    f"Definition: {clean_field(component_map.get(c, {}).get('meta', {}).get('definition', 'No definition available'))}, "
+                    f"Etymology: {get_etymology_text(component_map.get(c, {}).get('meta', {}))})"
+                )
+            )
+        else:
+            st.warning("No related characters match the current output filters.")
+    else:
+        st.warning("Please select a valid input component to enable output selection.")
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # Render character card
 def render_char_card(char, compounds):
