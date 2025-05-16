@@ -292,6 +292,7 @@ def process_text_input(component_map):
             st.session_state.page = 1
             st.session_state.text_input_warning = None
             st.session_state.output_char_select = "Select a character..."
+            st.session_state.output_selected_char = None  # Clear output selection
             st.session_state.stroke_count = 0
             st.session_state.radical = "No Filter"
             st.session_state.component_idc = "No Filter"
@@ -319,6 +320,7 @@ def on_selectbox_change():
     st.session_state.text_input_warning = None
     st.session_state.text_input_comp = st.session_state.selected_comp
     st.session_state.output_char_select = "Select a character..."
+    st.session_state.output_selected_char = None  # Clear output selection
     st.session_state.stroke_count = 0
     st.session_state.radical = "No Filter"
     st.session_state.component_idc = "No Filter"
@@ -571,9 +573,11 @@ def render_output_controls(component_map):
 
     with col6:
         if st.session_state.selected_comp and st.session_state.selected_comp in component_map:
+            related = component_map.get(st.session_state.selected_comp, {}).get("related_characters", [])
+            st.session_state.debug_info += f"; Related characters for {st.session_state.selected_comp}: {related}"
             idcs = {"No Filter"} | {
                 component_map.get(c, {}).get("meta", {}).get("decomposition", "")[0]
-                for c in component_map.get(st.session_state.selected_comp, {}).get("related_characters", [])
+                for c in related
                 if isinstance(c, str) and len(c) == 1 and c != '?' and component_map.get(c, {}).get("meta", {}).get("decomposition", "") and component_map.get(c, {}).get("meta", {}).get("decomposition", "")[0] in IDC_CHARS
             }
             idc_options = ["No Filter"] + sorted(idcs - {"No Filter"})
@@ -591,9 +595,10 @@ def render_output_controls(component_map):
 
     with col7:
         if st.session_state.selected_comp and st.session_state.selected_comp in component_map:
+            related = component_map.get(st.session_state.selected_comp, {}).get("related_characters", [])
             output_radicals = {"No Filter"} | {
                 component_map.get(c, {}).get("meta", {}).get("radical", "")
-                for c in component_map.get(st.session_state.selected_comp, {}).get("related_characters", [])
+                for c in related
                 if isinstance(c, str) and len(c) == 1 and c != '?' and component_map.get(c, {}).get("meta", {}).get("radical", "")
             }
             output_radical_options = ["No Filter"] + sorted(output_radicals - {"No Filter"})
