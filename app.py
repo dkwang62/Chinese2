@@ -95,8 +95,9 @@ def load_component_map():
     try:
         with open("enhanced_component_map_with_etymology.json", "r", encoding="utf-8") as f:
             data = json.load(f)
-            # Clean decompositions by removing '?' and logging warnings
+            # Clean decompositions and related_characters by removing '?'
             for char, entry in data.items():
+                # Clean decomposition
                 decomposition = entry.get("meta", {}).get("decomposition", "")
                 if '?' in decomposition:
                     st.session_state.diagnostic_messages.append({
@@ -104,6 +105,14 @@ def load_component_map():
                         "message": f"Invalid component '?' in decomposition for {char}: {decomposition}"
                     })
                     entry["meta"]["decomposition"] = ""
+                # Clean related_characters
+                related = entry.get("related_characters", [])
+                if '?' in related:
+                    st.session_state.diagnostic_messages.append({
+                        "type": "warning",
+                        "message": f"Invalid component '?' in related_characters for {char}"
+                    })
+                    entry["related_characters"] = [c for c in related if c != '?']
             return data
     except Exception as e:
         error_msg = f"Failed to load enhanced_component_map_with_etymology.json: {e}"
@@ -146,7 +155,7 @@ def format_decomposition(char):
 def get_all_components(char, max_depth, depth=0, seen=None):
     if seen is None:
         seen = set()
-    if char in seen or depth > max_depth or not isinstance(char, str) or len(char) != 1:
+    if char in seen or depth > max_depth or not isinstance(char, str) or len(char) != 1 or char == '?':
         return set()
     seen.add(char)
     components = set()
@@ -167,7 +176,7 @@ def init_session_state():
         {"selected_comp": "⺌", "stroke_count": 0, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "No Filter", "output_radical": "No Filter", "display_mode": "3-Character Phrases"},
         {"selected_comp": "㐱", "stroke_count": 0, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "No Filter", "output_radical": "No Filter", "display_mode": "Single Character"},
         {"selected_comp": "覀", "stroke_count": 0, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "No Filter", "output_radical": "No Filter", "display_mode": "2-Character Phrases"},
-        {"selected_comp": "豕", "stroke_count": 0, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "⿰", "output_radical": "No Filter", "display_mode": "3-Character Phrases"}
+        {"selected_comp": "豕", "stroke_count": 0, "radical": "No Filter", "component_idc": "⿰", "output_radical": "No Filter", "display_mode": "3-Character Phrases"}
     ]
     selected_config = random.choice(config_options)
     defaults = {
@@ -260,8 +269,8 @@ def on_selectbox_change():
 
 def on_output_char_select(component_map):
     selected_char = st.session_state.output_char_select
-    if selected_char == "Select a character..." or selected_char not in component_map:
-        if selected_char != "Select a character...":
+    if selected_char == "Select a character..." or selected_char not in component_map or selected_char == '?':
+        if selected_char != "Select a character..." and selected_char != '?':
             warning_msg = "Invalid character selected."
             st.session_state.diagnostic_messages.append({"type": "warning", "message": warning_msg})
         st.session_state.output_char_select = "Select a character..."
@@ -322,7 +331,7 @@ def render_controls(component_map):
             stroke_counts = sorted(set(
                 sc for sc in (
                     get_stroke_count(comp) for comp in component_map
-                    if isinstance(comp, str) and len(comp) == 1
+                    if isinstance(comp, str) and len(comp) == 1 and comp != '?'
                 ) if isinstance(sc, int) and sc > 0
             ))
             if stroke_counts:
@@ -344,13 +353,13 @@ def render_controls(component_map):
         with col2:
             pre_filtered_components = [
                 comp for comp in component_map
-                if isinstance(comp, str) and len(comp) == 1 and
+                if isinstance(comp, str) and len(comp) == 1 and comp != '?' and
                 (st.session_state.stroke_count == 0 or get_stroke_count(comp) == st.session_state.stroke_count)
             ]
             radicals = {"No Filter"} | {
-                component_map.get(c, {}).get("meta", {}).get("radical", "")
-                for c in pre_filtered_components
-                if isinstance(c, str) and len(c) == 1 and component_map.get(c, {}).get("meta", {}).get("radical", "")
+                component_map.get(comp, {}).get("meta", {}).get("radical", "")
+                for comp in pre_filtered_components
+                if component_map.get(comp, {}).get("meta", {}).get("radical", "")
             }
             radical_options = ["No Filter"] + sorted(radicals - {"No Filter"})
             if st.session_state.radical not in radical_options:
@@ -365,14 +374,14 @@ def render_controls(component_map):
         with col3:
             pre_filtered_components = [
                 comp for comp in component_map
-                if isinstance(comp, str) and len(comp) == 1 and
+                if isinstance(comp, str) and len(comp) == 1 and comp != '?' and
                 (st.session_state.stroke_count == 0 or get_stroke_count(comp) == st.session_state.stroke_count) and
-                (st.session_state.radical == "No Filter" or component_map.get(c, {}).get("meta", {}).get("radical", "") == st.session_state.radical)
+                (st.session_state.radical == "No Filter" or component_map.get(comp, {}).get("meta", {}).get("radical", "") == st.session_state.radical)
             ]
             component_idcs = {"No Filter"} | {
-                component_map.get(c, {}).get("meta", {}).get("decomposition", "")[0]
-                for c in pre_filtered_components
-                if isinstance(c, str) and len(c) == 1 and component_map.get(c, {}).get("meta", {}).get("decomposition", "") and component_map.get(c, {}).get("meta", {}).get("decomposition", "")[0] in IDC_CHARS
+                component_map.get(comp, {}).get("meta", {}).get("decomposition", "")[0]
+                for comp in pre_filtered_components
+                if component_map.get(comp, {}).get("meta", {}).get("decomposition", "") and component_map.get(comp, {}).get("meta", {}).get("decomposition", "")[0] in IDC_CHARS
             }
             component_idc_options = ["No Filter"] + sorted(component_idcs - {"No Filter"})
             if st.session_state.component_idc not in component_idc_options:
@@ -394,16 +403,16 @@ def render_controls(component_map):
         with col4:
             filtered_components = [
                 comp for comp in component_map
-                if isinstance(comp, str) and len(comp) == 1 and
+                if isinstance(comp, str) and len(comp) == 1 and comp != '?' and
                 (st.session_state.stroke_count == 0 or get_stroke_count(comp) == st.session_state.stroke_count) and
                 (st.session_state.radical == "No Filter" or component_map.get(comp, {}).get("meta", {}).get("radical", "") == st.session_state.radical) and
                 (st.session_state.component_idc == "No Filter" or component_map.get(comp, {}).get("meta", {}).get("decomposition", "").startswith(st.session_state.component_idc))
             ]
             # Add components from the selected character's decomposition
             selected_char_components = get_all_components(st.session_state.selected_comp, max_depth=5) if st.session_state.selected_comp else set()
-            filtered_components.extend([comp for comp in selected_char_components if comp not in filtered_components and comp in component_map])
+            filtered_components.extend([comp for comp in selected_char_components if comp not in filtered_components and comp in component_map and comp != '?'])
             # Ensure current selected_comp is included
-            if st.session_state.selected_comp and st.session_state.selected_comp in component_map and st.session_state.selected_comp not in filtered_components:
+            if st.session_state.selected_comp and st.session_state.selected_comp in component_map and st.session_state.selected_comp not in filtered_components and st.session_state.selected_comp != '?':
                 filtered_components.append(st.session_state.selected_comp)
             sorted_components = sorted(filtered_components, key=lambda c: get_stroke_count(c) or 0)
             
@@ -475,7 +484,7 @@ def render_controls(component_map):
             idcs = {"No Filter"} | {
                 component_map.get(c, {}).get("meta", {}).get("decomposition", "")[0]
                 for c in component_map.get(st.session_state.selected_comp, {}).get("related_characters", [])
-                if isinstance(c, str) and len(c) == 1 and component_map.get(c, {}).get("meta", {}).get("decomposition", "") and component_map.get(c, {}).get("meta", {}).get("decomposition", "")[0] in IDC_CHARS
+                if isinstance(c, str) and len(c) == 1 and c != '?' and component_map.get(c, {}).get("meta", {}).get("decomposition", "") and component_map.get(c, {}).get("meta", {}).get("decomposition", "")[0] in IDC_CHARS
             }
             idc_options = ["No Filter"] + sorted(idcs - {"No Filter"})
             if st.session_state.selected_idc not in idc_options:
@@ -491,7 +500,7 @@ def render_controls(component_map):
             output_radicals = {"No Filter"} | {
                 component_map.get(c, {}).get("meta", {}).get("radical", "")
                 for c in component_map.get(st.session_state.selected_comp, {}).get("related_characters", [])
-                if isinstance(c, str) and len(c) == 1 and component_map.get(c, {}).get("meta", {}).get("radical", "")
+                if isinstance(c, str) and len(c) == 1 and c != '?' and component_map.get(c, {}).get("meta", {}).get("radical", "")
             }
             output_radical_options = ["No Filter"] + sorted(output_radicals - {"No Filter"})
             if st.session_state.output_radical not in output_radical_options:
@@ -508,6 +517,8 @@ def render_controls(component_map):
 
 # Render character card
 def render_char_card(char, compounds):
+    if char == '?':
+        return
     meta = component_map.get(char, {}).get("meta", {})
     fields = {
         "Pinyin": clean_field(meta.get("pinyin", "—")),
@@ -538,8 +549,8 @@ def main():
     st.markdown("<h1>🧩 汉字 Radix</h1>", unsafe_allow_html=True)
     render_controls(component_map)
 
-    if not st.session_state.selected_comp:
-        st.info("Please select or type a component to view results.")
+    if not st.session_state.selected_comp or st.session_state.selected_comp == '?':
+        st.info("Please select or type a valid component to view results.")
         return
 
     meta = component_map.get(st.session_state.selected_comp, {}).get("meta", {})
@@ -557,7 +568,7 @@ def main():
     related = component_map.get(st.session_state.selected_comp, {}).get("related_characters", [])
     filtered_chars = [
         c for c in related
-        if isinstance(c, str) and len(c) == 1 and
+        if isinstance(c, str) and len(c) == 1 and c != '?' and
         (st.session_state.selected_idc == "No Filter" or component_map.get(c, {}).get("meta", {}).get("decomposition", "").startswith(st.session_state.selected_idc)) and
         (st.session_state.output_radical == "No Filter" or component_map.get(c, {}).get("meta", {}).get("radical", "") == st.session_state.output_radical)
     ]
@@ -574,18 +585,20 @@ def main():
     if filtered_chars:
         # Add components from the selected character's decomposition to output options
         selected_char_components = get_all_components(st.session_state.selected_comp, max_depth=5) if st.session_state.selected_comp else set()
-        output_options = sorted(filtered_chars, key=lambda c: get_stroke_count(c) or 0)
-        output_options.extend([comp for comp in selected_char_components if comp not in output_options and comp in component_map])
+        output_options = sorted([c for c in filtered_chars if c != '?'], key=lambda c: get_stroke_count(c) or 0)
+        output_options.extend([comp for comp in selected_char_components if comp not in output_options and comp in component_map and comp != '?'])
         # Ensure the current selected_comp is included
         if (st.session_state.selected_comp and
                 st.session_state.selected_comp in component_map and
-                st.session_state.selected_comp not in output_options):
+                st.session_state.selected_comp not in output_options and
+                st.session_state.selected_comp != '?'):
             output_options.append(st.session_state.selected_comp)
         options = ["Select a character..."] + sorted(output_options, key=lambda c: get_stroke_count(c) or 0)
         if (st.session_state.previous_selected_comp and
                 st.session_state.previous_selected_comp != st.session_state.selected_comp and
                 st.session_state.previous_selected_comp not in output_options and
-                st.session_state.previous_selected_comp in component_map):
+                st.session_state.previous_selected_comp in component_map and
+                st.session_state.previous_selected_comp != '?'):
             options.insert(1, st.session_state.previous_selected_comp)
         index = options.index(st.session_state.output_char_select) if st.session_state.get('output_char_select') in options else 0
         st.selectbox(
@@ -607,7 +620,7 @@ def main():
         )
 
     # Render results based on output_selected_char
-    if st.session_state.output_selected_char and st.session_state.output_selected_char in component_map:
+    if st.session_state.output_selected_char and st.session_state.output_selected_char in component_map and st.session_state.output_selected_char != '?':
         selected_char = st.session_state.output_selected_char
         compounds = [] if st.session_state.display_mode == "Single Character" else [
             comp for comp in component_map.get(selected_char, {}).get("meta", {}).get("compounds", [])
@@ -656,7 +669,7 @@ def main():
                 st.success("Text copied to clipboard!")
 
     # Render debug information, font slider, and diagnostics
-    radicals = {c for c in component_map if component_map.get(c, {}).get("meta", {}).get("radical", "") == c}
+    radicals = {c for c in component_map if component_map.get(c, {}).get("meta", {}).get("radical", "") == c and c != '?'}
     with st.expander("Debug Information (For Developers)", expanded=False):
         st.markdown("<div class='debug-section'>", unsafe_allow_html=True)
         st.slider("Adjust Font Size:", 0.7, 1.3, st.session_state.font_scale, 0.1, key="font_scale")
