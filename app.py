@@ -114,36 +114,39 @@ def apply_dynamic_css():
 # Load component map
 @st.cache_data
 def load_component_map():
+    diagnostic_messages = getattr(st.session_state, 'diagnostic_messages', [])
     try:
         with open("enhanced_component_map_with_etymology.json", "r", encoding="utf-8") as f:
             data = json.load(f)
-            st.session_state.diagnostic_messages.append({
+            diagnostic_messages.append({
                 "type": "info",
                 "message": f"Loaded component_map with {len(data)} entries"
             })
             for char, entry in data.items():
                 decomposition = entry.get("meta", {}).get("decomposition", "")
                 if '?' in decomposition:
-                    st.session_state.diagnostic_messages.append({
+                    diagnostic_messages.append({
                         "type": "warning",
                         "message": f"Invalid component '?' in decomposition for {char}: {decomposition}"
                     })
                     entry["meta"]["decomposition"] = ""
                 related = entry.get("related_characters", [])
                 if '?' in related:
-                    st.session_state.diagnostic_messages.append({
+                    diagnostic_messages.append({
                         "type": "warning",
                         "message": f"Invalid component '?' in related_characters for {char}"
                     })
                     entry["related_characters"] = [c for c in related if c != '?']
+            if hasattr(st.session_state, 'diagnostic_messages'):
+                st.session_state.diagnostic_messages = diagnostic_messages
             return data
     except Exception as e:
         error_msg = f"Failed to load enhanced_component_map_with_etymology.json: {e}"
         st.error(error_msg)
-        st.session_state.diagnostic_messages.append({"type": "error", "message": error_msg})
+        diagnostic_messages.append({"type": "error", "message": error_msg})
+        if hasattr(st.session_state, 'diagnostic_messages'):
+            st.session_state.diagnostic_messages = diagnostic_messages
         return {}
-
-component_map = load_component_map()
 
 # Utility functions
 def clean_field(field):
@@ -260,7 +263,11 @@ def init_session_state():
     for key, value in defaults.items():
         st.session_state.setdefault(key, value)
 
+# Initialize session state before loading component map
 init_session_state()
+
+# Now load component map
+component_map = load_component_map()
 
 # Callback functions
 def process_text_input(component_map):
@@ -722,7 +729,6 @@ def main():
 
     render_output_controls(component_map)
 
-    # Only display the selected output character and its components
     if st.session_state.output_selected_char and st.session_state.output_selected_char in component_map and st.session_state.output_selected_char != '?':
         selected_char = st.session_state.output_selected_char
         compounds = [] if st.session_state.display_mode == "Single Character" else [
@@ -740,7 +746,6 @@ def main():
     else:
         st.info("Please select an output character from the dropdown to view its details and components.")
 
-    # Export compounds section (only if an output character is selected and compounds exist)
     if st.session_state.output_selected_char and st.session_state.display_mode != "Single Character":
         compounds = [] if st.session_state.display_mode == "Single Character" else [
             comp for comp in component_map.get(st.session_state.output_selected_char, {}).get("meta", {}).get("compounds", [])
@@ -765,7 +770,6 @@ def main():
                     st.session_state.debug_info += "; Copied export_text to clipboard"
                     st.success("Text copied to clipboard!")
 
-    # Debug section
     radicals = {c for c in component_map if component_map.get(c, {}).get("meta", {}).get("radical", "") == c and c != '?'}
     with st.expander("Debug Information (For Developers)", expanded=True):
         st.markdown("<div class='debug-section'>", unsafe_allow_html=True)
