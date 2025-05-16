@@ -490,7 +490,7 @@ def render_controls(component_map):
             if st.session_state.output_radical not in output_radical_options:
                 st.session_state.output_radical = "No Filter"
             st.selectbox(
-                "Result Radical WIREs:",
+                "Result Radical:",
                 options=output_radical_options,
                 index=output_radical_options.index(st.session_state.output_radical),
                 key="output_radical"
