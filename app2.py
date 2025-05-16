@@ -93,7 +93,7 @@ def apply_dynamic_css():
 @st.cache_data
 def load_component_map():
     try:
-        with open("enhanced_component_map_with_etymology.json", "r", encoding="utf-8") as f:
+        with open("strokes2.json", "r", encoding="utf-8") as f:
             data = json.load(f)
             # Clean decompositions by removing '?' and logging warnings
             for char, entry in data.items():
