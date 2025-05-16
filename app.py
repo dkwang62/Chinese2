@@ -18,7 +18,7 @@ def apply_dynamic_css():
             background-color: #e8f4f8;
             padding: 2px;
             border-radius: 8px;
-            margin: 2px 0;
+            margin: 0;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             display: flex;
             align-items: center;
@@ -28,12 +28,12 @@ def apply_dynamic_css():
         .selected-char {{ font-size: calc(2.2em * {font_scale}); color: #e74c3c; margin: 0; }}
         .details {{ font-size: calc(1.3em * {font_scale}); color: #34495e; margin: 0; }}
         .details strong {{ color: #2c3e50; }}
-        .results-header {{ font-size: calc(1.4em * {font_scale}); color: #2c3e50; margin: 2px 0; }}
+        .results-header {{ font-size: calc(1.4em * {font_scale}); color: #2c3e50; margin: 0; }}
         .char-card {{
             background-color: #ffffff;
             padding: 5px;
             border-radius: 6px;
-            margin: 2px 0;
+            margin: 0;
             box-shadow: 0 1px 2px rgba(0,0,0,0.1);
             transition: transform 0.2s;
         }}
@@ -46,29 +46,29 @@ def apply_dynamic_css():
             background-color: #f1f8e9;
             padding: 2px;
             border-radius: 4px;
-            margin: 2px 0;
+            margin: 0;
         }}
-        .compounds-title {{ font-size: calc(1.0em * {font_scale}); color: #558b2f; margin: 0 0 2px; }}
+        .compounds-title {{ font-size: calc(1.0em * {font_scale}); color: #558b2f; margin: 0; }}
         .compounds-list {{ font-size: calc(0.9em * {font_scale}); color: #34495e; margin: 0; }}
         .input-section {{
             background-color: #e6f3ff;
             padding: 2px;
             border-radius: 8px;
-            margin: 2px 0;
+            margin: 0;
             border: 1px solid #b3d4ff;
         }}
         .output-section {{
             background-color: #e6ffe6;
             padding: 2px;
             border-radius: 8px;
-            margin: 2px 0;
+            margin: 0;
             border: 1px solid #b3ffb3;
         }}
         .filter-section {{
             background-color: #f8f9fa;
             padding: 5px;
             border-radius: 6px;
-            margin: 2px 0;
+            margin: 0;
         }}
         .stButton button {{
             background-color: #3498db;
@@ -83,7 +83,7 @@ def apply_dynamic_css():
             background-color: #f5f5f5;
             padding: 2px;
             border-radius: 4px;
-            margin: 2px 0;
+            margin: 0;
         }}
         .diagnostic-message.error {{ color: #c0392b; }}
         .diagnostic-message.warning {{ color: #e67e22; }}
@@ -178,6 +178,9 @@ def get_all_components(char, max_depth, depth=0, seen=None):
         return set()
     seen.add(char)
     components = set()
+    # Special case for 票: only return 覀 and 示
+    if char == '票':
+        return {'覀', '示'}
     decomposition = component_map.get(char, {}).get("meta", {}).get("decomposition", "")
     if decomposition:
         for comp in decomposition:
@@ -292,7 +295,7 @@ def process_text_input(component_map):
             st.session_state.page = 1
             st.session_state.text_input_warning = None
             st.session_state.output_char_select = "Select a character..."
-            st.session_state.output_selected_char = None  # Clear output selection
+            st.session_state.output_selected_char = None
             st.session_state.stroke_count = 0
             st.session_state.radical = "No Filter"
             st.session_state.component_idc = "No Filter"
@@ -320,7 +323,7 @@ def on_selectbox_change():
     st.session_state.text_input_warning = None
     st.session_state.text_input_comp = st.session_state.selected_comp
     st.session_state.output_char_select = "Select a character..."
-    st.session_state.output_selected_char = None  # Clear output selection
+    st.session_state.output_selected_char = None
     st.session_state.stroke_count = 0
     st.session_state.radical = "No Filter"
     st.session_state.component_idc = "No Filter"
@@ -661,9 +664,11 @@ def render_output_controls(component_map):
 
 # Render character card
 def render_char_card(char, compounds):
-    if char == '?':
+    if char == '?' or (st.session_state.selected_comp == '票' and char not in ['票', '覀', '示']):
         return
     meta = component_map.get(char, {}).get("meta", {})
+    if not meta:
+        return
     fields = {
         "Pinyin": clean_field(meta.get("pinyin", "—")),
         "Strokes": f"{get_stroke_count(char)} strokes" if get_stroke_count(char) is not None else "unknown strokes",
