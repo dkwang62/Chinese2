@@ -11,10 +11,6 @@ IDC_CHARS = {'⿰', '⿱', '⿲', '⿳', '⿴', '⿵', '⿶', '⿷', '⿸', '⿹
 
 # Dynamic CSS with font scaling
 def apply_dynamic_css():
-    """
-    Applies dynamic CSS to the Streamlit app, allowing font scaling.
-    Uses st.session_state to persist the font scale.
-    """
     font_scale = st.session_state.get('font_scale', 1.0)  # Default font scale is 1.0
     css = f"""
     <style>
@@ -112,11 +108,6 @@ def apply_dynamic_css():
 # Load component map
 @st.cache_data
 def load_component_map():
-    """
-    Loads the component map from a JSON file.  Uses st.session_state for
-    diagnostic messages, and handles potential file loading errors.  Also
-    performs data validation.
-    """
     diagnostic_messages = getattr(st.session_state, 'diagnostic_messages', [])
     try:
         with open("enhanced_component_map_with_etymology.json", "r", encoding="utf-8") as f:
@@ -125,7 +116,6 @@ def load_component_map():
                 "type": "info",
                 "message": f"Loaded component_map with {len(data)} entries"
             })
-            # Validate the loaded data
             for char, entry in data.items():
                 decomposition = entry.get("meta", {}).get("decomposition", "")
                 if '?' in decomposition:
@@ -133,20 +123,19 @@ def load_component_map():
                         "type": "warning",
                         "message": f"Invalid component '?' in decomposition for {char}: {decomposition}"
                     })
-                    entry["meta"]["decomposition"] = ""  # Correct the data
+                    entry["meta"]["decomposition"] = ""
                 related = entry.get("related_characters", [])
                 if '?' in related:
                     diagnostic_messages.append({
                         "type": "warning",
                         "message": f"Invalid component '?' in related_characters for {char}"
                     })
-                    entry["related_characters"] = [c for c in related if c != '?']  # Correct the data
-
+                    entry["related_characters"] = [c for c in related if c != '?']
             if hasattr(st.session_state, 'diagnostic_messages'):
                 st.session_state.diagnostic_messages = diagnostic_messages
             return data
     except FileNotFoundError:
-        error_msg = "Error: enhanced_component_map_with_etymology.json not found.  Please ensure the file is in the same directory."
+        error_msg = "Error: enhanced_component_map_with_etymology.json not found. Please ensure the file is in the same directory."
         st.error(error_msg)
         diagnostic_messages.append({"type": "error", "message": error_msg})
         if hasattr(st.session_state, 'diagnostic_messages'):
@@ -169,16 +158,9 @@ def load_component_map():
 
 # Utility functions
 def clean_field(field):
-    """
-    Cleans a field from the component map data. Handles lists and None values.
-    """
     return field[0] if isinstance(field, list) and field else field or "—"
 
 def get_stroke_count(char):
-    """
-    Gets the stroke count of a character from the component map.
-    Handles potential errors in the stroke count data.
-    """
     strokes = component_map.get(char, {}).get("meta", {}).get("strokes", None)
     try:
         if isinstance(strokes, (int, float)) and strokes > 0:
@@ -190,19 +172,12 @@ def get_stroke_count(char):
     return None
 
 def get_etymology_text(meta):
-    """
-    Formats the etymology text from the component map data.
-    Handles cases where etymology data is missing or incomplete.
-    """
     etymology = meta.get("etymology", {})
     hint = clean_field(etymology.get("hint", "No hint available"))
     details = clean_field(etymology.get("details", ""))
     return f"{hint}{'; Details: ' + details if details and details != '—' else ''}"
 
 def format_decomposition(char):
-    """
-    Formats the decomposition string, handling missing or invalid decompositions.
-    """
     decomposition = component_map.get(char, {}).get("meta", {}).get("decomposition", "")
     if not decomposition or '?' in decomposition:
         return "—"
@@ -211,20 +186,12 @@ def format_decomposition(char):
     return decomposition
 
 def get_components_for_display(char):
-    """
-    Gets the components for display, with a special case for '票'.
-    """
     if char == '票':
         return {'覀', '示'}
     return set()
 
 # Session state initialization
 def init_session_state():
-    """
-    Initializes the session state with default values and handles configuration.
-    Uses a more robust method to select a configuration and provides detailed
-    diagnostic messages.
-    """
     default_config = {
         "selected_comp": "心",
         "stroke_count": 0,
@@ -241,7 +208,7 @@ def init_session_state():
         {"selected_comp": "⺌", "stroke_count": 0, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "No Filter", "output_radical": "No Filter", "display_mode": "3-Character Phrases"},
         {"selected_comp": "㐱", "stroke_count": 0, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "No Filter", "output_radical": "No Filter", "display_mode": "Single Character"},
         {"selected_comp": "覀", "stroke_count": 0, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "No Filter", "output_radical": "No Filter", "display_mode": "2-Character Phrases"},
-        {"selected_comp": "豕", "stroke_count": 0, "radical": "No Filter", "component_idc": "⿰", "output_radical": "No Filter", "display_mode": "3-Character Phrases"}
+        {"selected_comp": "豕", "stroke_count": 0, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "⿰", "output_radical": "No Filter", "display_mode": "3-Character Phrases"}
     ]
 
     if "diagnostic_messages" not in st.session_state:
@@ -301,10 +268,6 @@ component_map = load_component_map()
 
 # Callback functions
 def process_text_input(component_map):
-    """
-    Processes text input for component selection.  Handles input validation,
-    updates session state, and displays appropriate messages.
-    """
     try:
         text_value = st.session_state.text_input_comp.strip()
         st.session_state.debug_info = f"Input received: '{text_value}'"
@@ -355,10 +318,6 @@ def process_text_input(component_map):
         st.session_state.last_processed_input = text_value
 
 def on_selectbox_change():
-    """
-    Handles changes in the component selection dropdown.  Updates session state
-    and resets relevant output parameters.
-    """
     st.session_state.previous_selected_comp = st.session_state.selected_comp
     st.session_state.page = 1
     st.session_state.text_input_warning = None
@@ -373,10 +332,6 @@ def on_selectbox_change():
     st.session_state.debug_info = f"Selectbox changed to '{st.session_state.selected_comp}' (Component dropdown takes precedence)"
 
 def on_output_char_select(component_map):
-    """
-    Handles selection of a character from the output dropdown.
-    Updates session state and handles invalid selections.
-    """
     selected_char = st.session_state.output_char_select
     if selected_char == "Select a character..." or selected_char not in component_map or selected_char == '?':
         if selected_char != "Select a character..." and selected_char != '?':
@@ -391,9 +346,6 @@ def on_output_char_select(component_map):
     st.session_state.debug_info = f"Output char selected: '{selected_char}' (Displays only this char and components)"
 
 def on_reset_input_filters():
-    """
-    Resets input filters to their default values.
-    """
     st.session_state.stroke_count = 0
     st.session_state.radical = "No Filter"
     st.session_state.component_idc = "No Filter"
@@ -402,9 +354,6 @@ def on_reset_input_filters():
     st.session_state.debug_info = "Input filters reset"
 
 def on_reset_output_filters():
-    """
-    Resets output filters to their default values.
-    """
     st.session_state.selected_idc = "No Filter"
     st.session_state.output_radical = "No Filter"
     st.session_state.display_mode = "Single Character"
@@ -413,9 +362,6 @@ def on_reset_output_filters():
     st.session_state.debug_info = "Output filters reset"
 
 def is_input_reset_needed():
-    """
-    Checks if the input filters need to be reset.
-    """
     return (
         st.session_state.stroke_count != 0 or
         st.session_state.radical != "No Filter" or
@@ -423,9 +369,6 @@ def is_input_reset_needed():
     )
 
 def is_output_reset_needed():
-    """
-    Checks if the output filters need to be reset.
-    """
     return (
         st.session_state.selected_idc != "No Filter" or
         st.session_state.output_radical != "No Filter" or
@@ -434,10 +377,6 @@ def is_output_reset_needed():
 
 # Render input controls
 def render_input_controls(component_map):
-    """
-    Renders the input controls section of the app, including dropdowns for
-    filtering components by stroke count, radical, and IDC.
-    """
     idc_descriptions = {
         "No Filter": "No Filter",
         "⿰": "Left Right",
@@ -610,10 +549,6 @@ def render_input_controls(component_map):
 
 # Render output controls
 def render_output_controls(component_map):
-    """
-    Renders the output controls section, including dropdowns for filtering
-    output characters by IDC and radical, and a radio button for display mode.
-    """
     idc_descriptions = {
         "No Filter": "No Filter",
         "⿰": "Left Right",
@@ -729,9 +664,6 @@ def render_output_controls(component_map):
 
 # Render character card
 def render_char_card(char, compounds):
-    """
-    Renders a character card with its details and compounds.
-    """
     if char == '?' or char not in ['票', '覀', '示']:
         return
     meta = component_map.get(char, {}).get("meta", {})
@@ -754,10 +686,6 @@ def render_char_card(char, compounds):
 
 # Main function
 def main():
-    """
-    Main function to run the Streamlit app.  Calls the other functions to
-    render the UI and handle user interactions.
-    """
     if not component_map:
         st.error("Failed to load component map. Please check the error messages above.")
         return
@@ -771,7 +699,7 @@ def main():
     if st.session_state.output_selected_char:
         selected_char = st.session_state.output_selected_char
         st.markdown(f"<h2 class='results-header'>Selected Character:</h2>", unsafe_allow_html=True)
-        render_char_card(selected_char, [])  # Pass an empty list for compounds since we only want the single char
+        render_char_card(selected_char, [])
 
         st.markdown("<h2 class='results-header'>Decomposition</h2>", unsafe_allow_html=True)
         decomposition = format_decomposition(selected_char)
@@ -783,7 +711,7 @@ def main():
                     st.markdown(f"<div class='selected-card'><h3 class='selected-char'>{comp}</h3></div>", unsafe_allow_html=True)
         else:
             st.markdown("Decomposition: —", unsafe_allow_html=True)
-    elif st.session_state.selected_comp:  # Only show results if a component is selected
+    elif st.session_state.selected_comp:
         st.markdown(f"<h2 class='results-header'>Characters Containing Component '{st.session_state.selected_comp}':</h2>", unsafe_allow_html=True)
         related_chars = component_map.get(st.session_state.selected_comp, {}).get("related_characters", [])
         filtered_chars = [
@@ -803,18 +731,16 @@ def main():
         if not filtered_chars:
             st.warning("No characters found matching the criteria.")
         else:
-            cols = st.columns(min(len(filtered_chars), 5))  # Adjust the number 5 to fit your layout
+            cols = st.columns(min(len(filtered_chars), 5))
             for i, char in enumerate(filtered_chars):
                 with cols[i % len(cols)]:
                     render_char_card(char, char_compounds[char])
 
-    # Display debug info
     if st.session_state.debug_info:
         st.markdown("<div class='debug-section'><h4>Debug Info:</h4>", unsafe_allow_html=True)
         st.write(st.session_state.debug_info)
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # Display diagnostic messages
     if st.session_state.diagnostic_messages:
         st.markdown("<h4>Diagnostic Messages:</h4>", unsafe_allow_html=True)
         for message in st.session_state.diagnostic_messages:
