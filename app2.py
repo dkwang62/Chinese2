@@ -93,7 +93,7 @@ def apply_dynamic_css():
 @st.cache_data
 def load_component_map():
     try:
-        with open("strokes2.json", "r", encoding="utf-8") as f:
+        with open("enhanced_component_map_with_etymology.json", "r", encoding="utf-8") as f:
             data = json.load(f)
             # Clean decompositions by removing '?' and logging warnings
             for char, entry in data.items():
@@ -106,7 +106,7 @@ def load_component_map():
                     entry["meta"]["decomposition"] = ""
             return data
     except Exception as e:
-        error_msg = f"Failed to load strokes2.json: {e}"
+        error_msg = f"Failed to load enhanced_component_map_with_etymology.json: {e}"
         st.error(error_msg)
         st.session_state.diagnostic_messages.append({"type": "error", "message": error_msg})
         return {}
