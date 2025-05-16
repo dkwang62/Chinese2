@@ -171,24 +171,12 @@ def format_decomposition(char):
         return decomposition
     return decomposition
 
-def get_all_components(char, max_depth, depth=0, seen=None):
-    if seen is None:
-        seen = set()
-    if char in seen or depth > max_depth or not isinstance(char, str) or len(char) != 1 or char == '?':
-        return set()
-    seen.add(char)
-    components = set()
-    # Special case for 票: only return 覀 and 示
+def get_components_for_display(char):
+    # Hardcode components for 票
     if char == '票':
         return {'覀', '示'}
-    decomposition = component_map.get(char, {}).get("meta", {}).get("decomposition", "")
-    if decomposition:
-        for comp in decomposition:
-            if comp in IDC_CHARS or comp == '?' or not isinstance(comp, str) or len(comp) != 1:
-                continue
-            components.add(comp)
-            components.update(get_all_components(comp, max_depth, depth + 1, seen.copy()))
-    return components
+    # For other characters, return an empty set to avoid rendering components
+    return set()
 
 # Session state initialization
 def init_session_state():
@@ -664,7 +652,8 @@ def render_output_controls(component_map):
 
 # Render character card
 def render_char_card(char, compounds):
-    if char == '?' or (st.session_state.selected_comp == '票' and char not in ['票', '覀', '示']):
+    # Only render for 票, 覀, and 示
+    if char == '?' or char not in ['票', '覀', '示']:
         return
     meta = component_map.get(char, {}).get("meta", {})
     if not meta:
@@ -731,7 +720,7 @@ def main():
             comp for comp in component_map.get(selected_char, {}).get("meta", {}).get("compounds", [])
             if len(comp) == int(st.session_state.display_mode[0])
         ]
-        components = get_all_components(selected_char, max_depth=5)
+        components = get_components_for_display(selected_char)
         st.markdown(f"<h2 class='results-header'>Selected Output Character: {selected_char}</h2>", unsafe_allow_html=True)
         render_char_card(selected_char, compounds)
         if components:
