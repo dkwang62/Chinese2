@@ -641,14 +641,19 @@ def main():
                     for compound in char_compounds.get(char, [])
                 )
             st.text_area("Export Text", export_text, height=200, key="export_text")
-            components.html(f"""
-                <textarea id="copyTarget" style="opacity:0;position:absolute;left:-9999px;">{export_text}</textarea>
-                <script>
-                const copyText = document.getElementById("copyTarget");
-                copyText.select();
-                document.execCommand("copy");
-                </script>
-            """, height=0)
+            if st.button("Copy to Clipboard"):
+                # Use JavaScript with navigator.clipboard for modern browsers
+                st.markdown(f"""
+                    <script>
+                    navigator.clipboard.writeText(`{export_text}`).then(() => {{
+                        console.log('Text copied to clipboard');
+                    }}).catch(err => {{
+                        console.error('Failed to copy: ', err);
+                    }});
+                    </script>
+                """, unsafe_allow_html=True)
+                st.session_state.debug_info += "; Copied export_text to clipboard"
+                st.success("Text copied to clipboard!")
 
     # Render debug information, font slider, and diagnostics
     radicals = {c for c in component_map if component_map.get(c, {}).get("meta", {}).get("radical", "") == c}
