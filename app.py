@@ -135,8 +135,8 @@ def on_text_input_change(component_map):
     else:
         warning_msg = "Invalid character. Please enter a valid component."
         st.session_state.diagnostic_messages.append({"type": "warning", "message": warning_msg})
-        st.session_state.debug_info += f"; Invalid component '{text_value}'"
         st.session_state.text_input_comp = ""
+        st.session_state.debug_info += f"; Invalid component '{text_value}'"
 
 def on_selectbox_change():
     st.session_state.previous_selected_comp = st.session_state.selected_comp
@@ -181,7 +181,7 @@ def render_controls(component_map):
     idc_descriptions = {
         "No Filter": "No Filter",
         "⿰": "Left Right",
-        "⿱": "Top sovereigntyottom",
+        "⿱": "Top Bottom",
         "⿲": "Left Middle Right",
         "⿳": "Top Middle Bottom",
         "⿴": "Surround",
@@ -241,23 +241,6 @@ def render_controls(component_map):
 
     with col5:
         st.text_input("Or type:", value=st.session_state.text_input_comp, key="text_input_comp", on_change=on_text_input_change, args=(component_map,), placeholder="Enter one Chinese character")
-
-    # Remove JavaScript for paste events
-    # components.html("""
-    #     <script>
-    #         let debounceTimeout = null;
-    #         document.addEventListener('paste', function(e) {
-    #             clearTimeout(debounceTimeout);
-    #             const text = (e.clipboardData || window.clipboardData).getData('text').trim();
-    #             const input = document.querySelector('input[data-testid="stTextInput"]');
-    #             if (input) {
-    #                 input.value = text;
-    #                 input.dispatchEvent(new Event('input', { bubbles: true }));
-    #                 input.dispatchEvent(new Event('change', { bubbles: true }));
-    #             }
-    #         });
-    #     </script>
-    # """, height=0)
 
     st.button("Reset Filters", on_click=on_reset_filters, disabled=not is_reset_needed())
 
