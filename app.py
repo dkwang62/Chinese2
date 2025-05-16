@@ -73,6 +73,7 @@ def apply_dynamic_css():
         }}
         .diagnostic-message.error {{ color: #c0392b; }}
         .diagnostic-message.warning {{ color: #e67e22; }}
+        .diagnostic-message.info {{ color: #3498db; }}
         .stSelectbox, .stTextInput, .stRadio, .stSlider {{
             font-size: calc(0.9em * {font_scale});
         }}
@@ -170,30 +171,75 @@ def get_all_components(char, max_depth, depth=0, seen=None):
 
 # Session state initialization
 def init_session_state():
+    # Define default configuration
+    default_config = {
+        "selected_comp": "心",
+        "stroke_count": 0,
+        "radical": "No Filter",
+        "selected_idc": "No Filter",
+        "component_idc": "No Filter",
+        "output_radical": "No Filter",
+        "display_mode": "Single Character"
+    }
+
+    # Define configuration options
     config_options = [
         {"selected_comp": "爫", "stroke_count": 0, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "No Filter", "output_radical": "No Filter", "display_mode": "Single Character"},
         {"selected_comp": "心", "stroke_count": 0, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "⿱", "output_radical": "No Filter", "display_mode": "2-Character Phrases"},
         {"selected_comp": "⺌", "stroke_count": 0, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "No Filter", "output_radical": "No Filter", "display_mode": "3-Character Phrases"},
         {"selected_comp": "㐱", "stroke_count": 0, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "No Filter", "output_radical": "No Filter", "display_mode": "Single Character"},
         {"selected_comp": "覀", "stroke_count": 0, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "No Filter", "output_radical": "No Filter", "display_mode": "2-Character Phrases"},
-        {"selected_comp": "豕", "stroke_count": 0, "radical": "No Filter", "component_idc": "⿰", "output_radical": "No Filter", "display_mode": "3-Character Phrases"}
+        {"selected_comp": "豕", "stroke_count": 0, "radical": "No Filter", "selected_idc": "No Filter", "component_idc": "⿰", "output_radical": "No Filter", "display_mode": "3-Character Phrases"}
     ]
-    selected_config = random.choice(config_options)
+
+    # Initialize diagnostic_messages if not already set
+    if "diagnostic_messages" not in st.session_state:
+        st.session_state.diagnostic_messages = []
+
+    # Log all config_options for debugging
+    st.session_state.diagnostic_messages.append({
+        "type": "info",
+        "message": f"Available config_options: {config_options}"
+    })
+
+    # Validate config_options
+    required_keys = set(default_config.keys())
+    valid_configs = [
+        config for config in config_options
+        if isinstance(config, dict) and required_keys.issubset(set(config.keys()))
+    ]
+
+    if not valid_configs:
+        st.session_state.diagnostic_messages.append({
+            "type": "error",
+            "message": "No valid configurations found in config_options. Using default configuration."
+        })
+        selected_config = default_config
+    else:
+        selected_config = random.choice(valid_configs)
+
+    # Log selected configuration
+    st.session_state.diagnostic_messages.append({
+        "type": "info",
+        "message": f"Selected configuration: {selected_config}"
+    })
+
+    # Initialize session state with defaults
     defaults = {
-        "selected_comp": selected_config["selected_comp"],
-        "stroke_count": selected_config["stroke_count"],
-        "radical": selected_config["radical"],
-        "display_mode": selected_config["display_mode"],
-        "selected_idc": selected_config["selected_idc"],
-        "component_idc": selected_config["component_idc"],
-        "output_radical": selected_config["output_radical"],
+        "selected_comp": selected_config.get("selected_comp", default_config["selected_comp"]),
+        "stroke_count": selected_config.get("stroke_count", default_config["stroke_count"]),
+        "radical": selected_config.get("radical", default_config["radical"]),
+        "display_mode": selected_config.get("display_mode", default_config["display_mode"]),
+        "selected_idc": selected_config.get("selected_idc", default_config["selected_idc"]),
+        "component_idc": selected_config.get("component_idc", default_config["component_idc"]),
+        "output_radical": selected_config.get("output_radical", default_config["output_radical"]),
         "text_input_comp": "",
         "page": 1,
-        "previous_selected_comp": selected_config["selected_comp"],
+        "previous_selected_comp": selected_config.get("selected_comp", default_config["selected_comp"]),
         "text_input_warning": None,
-        "debug_info": "",
+        "debug_info": f"Initialized session state with config: {selected_config}",
         "last_processed_input": "",
-        "diagnostic_messages": [],
+        "diagnostic_messages": st.session_state.diagnostic_messages,
         "font_scale": 1.0,
         "output_selected_char": None
     }
@@ -685,7 +731,7 @@ def main():
         st.write(f"Debug log: {st.session_state.debug_info}")
         st.markdown("### Errors and Warnings")
         for msg in st.session_state.diagnostic_messages:
-            class_name = 'error' if msg['type'] == 'error' else 'warning'
+            class_name = 'error' if msg['type'] == 'error' else 'warning' if msg['type'] == 'warning' else 'info'
             st.markdown(f"<p class='diagnostic-message {class_name}'>{msg['type'].capitalize()}: {msg['message']}</p>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
