@@ -527,8 +527,8 @@ def main():
 
     # Apply dynamic CSS
     apply_dynamic_css()
-
-    st.markdown("<h1>🈶 汉字 Radix</h1>", unsafe_allow_html=True)
+# 🈶
+    st.markdown("<h1> 🈑 Radix</h1>", unsafe_allow_html=True)
     render_controls(component_map)
 
     if not st.session_state.selected_comp:
