@@ -503,11 +503,11 @@ def render_controls(component_map):
 def render_char_card(char, compounds):
     meta = component_map.get(char, {}).get("meta", {})
     fields = {
-        "Pinyin": clean_field(meta.get("pinyin", "—")),
+        "": clean_field(meta.get("pinyin", "—")),
         "Strokes": f"{get_stroke_count(char)} strokes" if get_stroke_count(char) is not None else "unknown strokes",
         "Radical": clean_field(meta.get("radical", "—")),
-        "Decomposition": format_decomposition(char),
-        "Definition": clean_field(meta.get("definition", "No definition available")),
+        "Elements": format_decomposition(char),
+        "Def": clean_field(meta.get("definition", "No definition available")),
         "Etymology": get_etymology_text(meta)
     }
     details = " ".join(f"<strong>{k}:</strong> {v}" for k, v in fields.items())
