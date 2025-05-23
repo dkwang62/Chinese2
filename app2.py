@@ -130,7 +130,7 @@ def get_stroke_count(char):
 
 def get_etymology_text(meta):
     etymology = meta.get("etymology", {})
-    hint = clean_field(etymology.get("hint", "No hint available"))
+    hint = clean_field(etymology.get("hint", "-"))
     details = clean_field(etymology.get("details", ""))
     return f"{hint}{'; Details: ' + details if details and details != '—' else ''}"
 
@@ -423,7 +423,7 @@ def render_controls(component_map):
                     f"Strokes: {get_stroke_count(c) or 'unknown'}, "
                     f"Rad: {clean_field(component_map.get(c, {}).get('meta', {}).get('radical', '—'))}, "
                     f"{format_decomposition(c)}, "
-                    f"{clean_field(component_map.get(c, {}).get('meta', {}).get('definition', 'No definition available'))}, "
+                    f"{clean_field(component_map.get(c, {}).get('meta', {}).get('definition', ''))}, "
                     f"Ety: {get_etymology_text(component_map.get(c, {}).get('meta', {}))})"
                 ),
                 key="selected_comp",
@@ -503,11 +503,11 @@ def render_controls(component_map):
 def render_char_card(char, compounds):
     meta = component_map.get(char, {}).get("meta", {})
     fields = {
-        "Say": clean_field(meta.get("pinyin", "—")),
-        "Strokes": f"{get_stroke_count(char)} strokes" if get_stroke_count(char) is not None else "unknown strokes",
+        "Pinyin": clean_field(meta.get("pinyin", "—")),
+        "Strokes": f"{get_stroke_count(char)} strokes" if get_stroke_count(char) is not None else "-",
         "Radical": clean_field(meta.get("radical", "—")),
         "Elements": format_decomposition(char),
-        "Def": clean_field(meta.get("definition", "No definition available")),
+        "Def": clean_field(meta.get("definition", "-")),
         "Ety": get_etymology_text(meta)
     }
     details = " ".join(f"<strong>{k}:</strong> {v}" for k, v in fields.items())
@@ -538,10 +538,10 @@ def main():
     meta = component_map.get(st.session_state.selected_comp, {}).get("meta", {})
     fields = {
         "Pinyin": clean_field(meta.get("pinyin", "—")),
-        "Strokes": f"{get_stroke_count(st.session_state.selected_comp)} strokes" if get_stroke_count(st.session_state.selected_comp) is not None else "unknown strokes",
+        "Strokes": f"{get_stroke_count(st.session_state.selected_comp)} strokes" if get_stroke_count(st.session_state.selected_comp) is not None else "-",
         "Radical": clean_field(meta.get("radical", "—")),
-        "Decomposition": format_decomposition(st.session_state.selected_comp),
-        "Definition": clean_field(meta.get("definition", "No definition available")),
+        "Elements": format_decomposition(st.session_state.selected_comp),
+        "Definition": clean_field(meta.get("definition", "-")),
         "Etymology": get_etymology_text(meta)
     }
     details = " ".join(f"<strong>{k}:</strong> {v}" for k, v in fields.items())
@@ -584,10 +584,10 @@ def main():
             format_func=lambda c: (
                 c if c == "Select a character..." else
                 f"{c} (Pinyin: {clean_field(component_map.get(c, {}).get('meta', {}).get('pinyin', '—'))}, "
-                f"Strokes: {get_stroke_count(c) or 'unknown'}, "
+                f"Strokes: {get_stroke_count(c) or '-'}, "
                 f"Radical: {clean_field(component_map.get(c, {}).get('meta', {}).get('radical', '—'))}, "
                 f"Decomposition: {format_decomposition(c)}, "
-                f"Definition: {clean_field(component_map.get(c, {}).get('meta', {}).get('definition', 'No definition available'))}, "
+                f"Definition: {clean_field(component_map.get(c, {}).get('meta', {}).get('definition', '-'))}, "
                 f"Etymology: {get_etymology_text(component_map.get(c, {}).get('meta', {}))})"
             )
         )
