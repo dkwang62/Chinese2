@@ -421,9 +421,9 @@ def render_controls(component_map):
                     c if c == "Select a component..." else
                     f"{c} ({clean_field(component_map.get(c, {}).get('meta', {}).get('pinyin', 'None'))}, "
                     f"Strokes: {get_stroke_count(c) or 'unknown'}, "
-                    f"Rad: {clean_field(component_map.get(c, {}).get('meta', {}).get('radical', 'None'))}, "
-                    f"{format_decomposition(c)}, "
-                    f"{clean_field(component_map.get(c, {}).get('meta', {}).get('definition', ''))}, "
+                    #    f"Rad: {clean_field(component_map.get(c, {}).get('meta', {}).get('radical', 'None'))}, "
+                    f"Elements: {format_decomposition(c)}, "
+                    f"Def: {clean_field(component_map.get(c, {}).get('meta', {}).get('definition', ''))} "
                     #    f"Ety: {get_etymology_text(component_map.get(c, {}).get('meta', {}))})"
                 ),
                 key="selected_comp",
