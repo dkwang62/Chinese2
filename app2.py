@@ -419,12 +419,12 @@ def render_controls(component_map):
                 index=index,
                 format_func=lambda c: (
                     c if c == "Select a component..." else
-                    f"{c} (Pinyin: {clean_field(component_map.get(c, {}).get('meta', {}).get('pinyin', '—'))}, "
+                    f"{c} ({clean_field(component_map.get(c, {}).get('meta', {}).get('pinyin', '—'))}, "
                     f"Strokes: {get_stroke_count(c) or 'unknown'}, "
-                    f"Radical: {clean_field(component_map.get(c, {}).get('meta', {}).get('radical', '—'))}, "
-                    f"Decomposition: {format_decomposition(c)}, "
-                    f"Definition: {clean_field(component_map.get(c, {}).get('meta', {}).get('definition', 'No definition available'))}, "
-                    f"Etymology: {get_etymology_text(component_map.get(c, {}).get('meta', {}))})"
+                    f"Rad: {clean_field(component_map.get(c, {}).get('meta', {}).get('radical', '—'))}, "
+                    f"{format_decomposition(c)}, "
+                    f"{clean_field(component_map.get(c, {}).get('meta', {}).get('definition', 'No definition available'))}, "
+                    f"Ety: {get_etymology_text(component_map.get(c, {}).get('meta', {}))})"
                 ),
                 key="selected_comp",
                 on_change=on_selectbox_change
